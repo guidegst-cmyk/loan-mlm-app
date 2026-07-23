@@ -1,0 +1,161 @@
+import { useEffect, useMemo, useState } from 'react'
+import { fetchAgents, fetchBanks, fetchLoanTypes, fetchLeads, fetchCommissionLedger, fetchPayoutMatrix, fetchDocumentTypes, getSubtreeIds } from './lib/queries'
+import { getSession, logout } from './lib/auth'
+import Login from './components/Login'
+import AgentDashboard from './components/AgentDashboard'
+import AgentTree from './components/AgentTree'
+import LeadsTable from './components/LeadsTable'
+import CommissionLedger from './components/CommissionLedger'
+import LeadDetailModal from './components/LeadDetailModal'
+import MasterData from './components/MasterData'
+import './App.css'
+
+export default function App() {
+  const [session, setSession] = useState(() => getSession())
+  const [tab, setTab] = useState('dashboard')
+
+  const [agents, setAgents] = useState([])
+  const [banks, setBanks] = useState([])
+  const [loanTypes, setLoanTypes] = useState([])
+  const [leads, setLeads] = useState([])
+  const [ledger, setLedger] = useState([])
+  const [payoutMatrix, setPayoutMatrix] = useState([])
+  const [documentTypes, setDocumentTypes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [selectedLeadId, setSelectedLeadId] = useState(null)
+
+  const role = session?.role
+  const currentAgent = useMemo(
+    () => agents.find(a => a.id === session?.agent_id),
+    [agents, session]
+  )
+
+  async function loadAll() {
+    setLoading(true)
+    setError(null)
+    try {
+      const [ag, bk, lt, ld, cl, pm, dt] = await Promise.all([
+        fetchAgents(), fetchBanks(), fetchLoanTypes(), fetchLeads(), fetchCommissionLedger(), fetchPayoutMatrix(), fetchDocumentTypes(),
+      ])
+      setAgents(ag); setBanks(bk); setLoanTypes(lt); setLeads(ld); setLedger(cl); setPayoutMatrix(pm); setDocumentTypes(dt)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { if (session) loadAll() }, [session])
+
+  const scope = useMemo(() => {
+    if (!session || role === 'admin' || !currentAgent) return null
+    return getSubtreeIds(currentAgent.id, agents)
+  }, [session, role, currentAgent, agents])
+
+  const scopedLeads = useMemo(() => {
+    if (!scope) return leads
+    return leads.filter(l => scope.has(l.generator_agent_id))
+  }, [leads, scope])
+
+  const scopedLedger = useMemo(() => {
+    if (!scope) return ledger
+    const leadIds = new Set(scopedLeads.map(l => l.id))
+    return ledger.filter(e => leadIds.has(e.lead_id))
+  }, [ledger, scope, scopedLeads])
+
+  const stats = useMemo(() => {
+    const byStatus = {}
+    scopedLeads.forEach(l => { byStatus[l.status] = (byStatus[l.status] || 0) + 1 })
+    const pendingPayout = scopedLedger.filter(e => e.payout_status === 'pending').reduce((s, e) => s + Number(e.amount), 0)
+    const paidPayout = scopedLedger.filter(e => e.payout_status === 'paid').reduce((s, e) => s + Number(e.amount), 0)
+    return { byStatus, pendingPayout, paidPayout, totalLeads: scopedLeads.length }
+  }, [scopedLeads, scopedLedger])
+
+  if (!session) {
+    return <Login onLogin={setSession} />
+  }
+
+  if (loading) return <div className="center-msg">Loading…</div>
+  if (error) return <div className="center-msg error">Error: {error}. Check your .env credentials and that the schema is deployed.</div>
+
+  const tabs = role === 'admin'
+    ? ['dashboard', 'agents', 'leads', 'commissions', 'masterdata']
+    : ['dashboard', 'agents', 'leads', 'commissions']
+
+  function handleLogout() {
+    logout()
+    setSession(null)
+  }
+
+  return (
+    <div className="app">
+      <header className="topbar">
+        <div className="brand">Loan Lead Referral Platform</div>
+        <div className="role-switcher" style={{ alignItems: 'center' }}>
+          <span style={{ fontSize: 13 }}>
+            {role === 'admin' ? 'Admin' : currentAgent?.name} ({role})
+          </span>
+          <button className="btn" style={{ background: '#3a5a7c' }} onClick={handleLogout}>Log out</button>
+        </div>
+      </header>
+
+      <nav className="tabs">
+        {tabs.map(t => (
+          <button key={t} className={tab === t ? 'tab active' : 'tab'} onClick={() => setTab(t)}>
+            {t === 'dashboard' ? (role === 'agent' ? 'My Dashboard' : 'Dashboard') : t === 'masterdata' ? 'Master Data' : t[0].toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </nav>
+
+      <main className="content">
+        {tab === 'dashboard' && role === 'admin' && (
+          <div className="stat-grid">
+            <div className="stat-card"><div className="stat-num">{stats.totalLeads}</div><div className="stat-label">Total leads</div></div>
+            <div className="stat-card"><div className="stat-num">{stats.byStatus.Disbursed || 0}</div><div className="stat-label">Disbursed</div></div>
+            <div className="stat-card"><div className="stat-num">₹{stats.pendingPayout.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div><div className="stat-label">Pending payout</div></div>
+            <div className="stat-card"><div className="stat-num">₹{stats.paidPayout.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div><div className="stat-label">Paid out</div></div>
+          </div>
+        )}
+
+        {tab === 'dashboard' && role === 'agent' && currentAgent && (
+          <AgentDashboard currentAgent={currentAgent} leads={scopedLeads} ledger={scopedLedger} agents={agents} allAgents={agents} payoutMatrix={payoutMatrix} />
+        )}
+
+        {tab === 'agents' && <AgentTree agents={agents} role={role} currentAgent={currentAgent} />}
+
+        {tab === 'leads' && (
+          <LeadsTable
+            leads={scopedLeads} agents={role === 'admin' ? agents : agents.filter(a => scope.has(a.id))}
+            allAgents={agents} payoutMatrix={payoutMatrix}
+            banks={banks} loanTypes={loanTypes} role={role} currentAgent={role === 'agent' ? currentAgent : null}
+            onRefresh={loadAll} onSelectLead={l => setSelectedLeadId(l.id)}
+          />
+        )}
+
+        {tab === 'commissions' && (
+          <CommissionLedger
+            entries={scopedLedger} leads={scopedLeads} role={role} payoutMatrix={payoutMatrix}
+            agents={role === 'admin' ? agents : agents.filter(a => scope.has(a.id))}
+            currentAgent={role === 'agent' ? currentAgent : null}
+            onRefresh={loadAll}
+          />
+        )}
+        {tab === 'masterdata' && role === 'admin' && (
+          <MasterData
+            agents={agents} banks={banks} loanTypes={loanTypes}
+            payoutMatrix={payoutMatrix} documentTypes={documentTypes}
+            onRefresh={loadAll}
+          />
+        )}
+      </main>
+
+      {selectedLeadId && (() => {
+        const freshLead = leads.find(l => l.id === selectedLeadId)
+        return freshLead
+          ? <LeadDetailModal lead={freshLead} currentAgent={currentAgent} onClose={() => setSelectedLeadId(null)} />
+          : null
+      })()}
+    </div>
+  )
+}
