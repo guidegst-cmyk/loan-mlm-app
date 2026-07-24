@@ -83,3 +83,15 @@ Added proper responsive breakpoints — tables scroll horizontally on narrow scr
 tabs scroll horizontally, stat cards collapse from 4 → 2 → 1 columns, forms collapse from 2 → 1 columns,
 and the login/apply screens no longer overflow on narrow phones (e.g. iPhone SE at 320px wide).
 No SQL changes needed for this — frontend-only.
+
+## Admin Dashboard rebuild (new)
+No SQL changes needed — frontend only, computed from already-loaded data.
+- **Money summary** cards (total leads, pending/due/paid) — the "Invoiced" card is clickable, jumps to Commissions
+- **Status cards** for New/Verified/Submitted/Disbursed/Rejected — click a card to expand a loan-type
+  breakdown inline (how many Home Loan, Personal Loan, etc. in that status), with a "View these leads"
+  link that jumps to the Leads tab pre-filtered to that status
+- **Team performance** table — one row per team (the direct reports of your topmost agent(s) + their full
+  downline): total leads, disbursed, rejected, total commission generated
+- **Top performers** — top 5 agents by total commission earned
+- **Flagged agents** — agents with ≥34% rejection rate (min. 2 decided leads) or zero leads generated yet;
+  rule is shown in the UI and can be tuned in `src/lib/dashboardAnalytics.js`

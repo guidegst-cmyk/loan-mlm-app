@@ -10,6 +10,7 @@ import CommissionLedger from './components/CommissionLedger'
 import LeadDetailModal from './components/LeadDetailModal'
 import MasterData from './components/MasterData'
 import Notifications from './components/Notifications'
+import AdminDashboard from './components/AdminDashboard'
 import './App.css'
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedLeadId, setSelectedLeadId] = useState(null)
+  const [initialLeadStatus, setInitialLeadStatus] = useState(null)
 
   const role = session?.role
   const currentAgent = useMemo(
@@ -106,8 +108,10 @@ export default function App() {
     const byStatus = {}
     scopedLeads.forEach(l => { byStatus[l.status] = (byStatus[l.status] || 0) + 1 })
     const pendingPayout = scopedLedger.filter(e => e.payout_status === 'pending').reduce((s, e) => s + Number(e.amount), 0)
+    const dueEntries = scopedLedger.filter(e => e.payout_status === 'due')
+    const duePayout = dueEntries.reduce((s, e) => s + Number(e.amount), 0)
     const paidPayout = scopedLedger.filter(e => e.payout_status === 'paid').reduce((s, e) => s + Number(e.amount), 0)
-    return { byStatus, pendingPayout, paidPayout, totalLeads: scopedLeads.length }
+    return { byStatus, pendingPayout, duePayout, dueCount: dueEntries.length, dueEntries, paidPayout, totalLeads: scopedLeads.length }
   }, [scopedLeads, scopedLedger])
 
   if (!session) {
@@ -157,12 +161,11 @@ export default function App() {
 
       <main className="content">
         {tab === 'dashboard' && role === 'admin' && (
-          <div className="stat-grid">
-            <div className="stat-card"><div className="stat-num">{stats.totalLeads}</div><div className="stat-label">Total leads</div></div>
-            <div className="stat-card"><div className="stat-num">{stats.byStatus.Disbursed || 0}</div><div className="stat-label">Disbursed</div></div>
-            <div className="stat-card"><div className="stat-num">₹{stats.pendingPayout.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div><div className="stat-label">Pending payout</div></div>
-            <div className="stat-card"><div className="stat-num">₹{stats.paidPayout.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div><div className="stat-label">Paid out</div></div>
-          </div>
+          <AdminDashboard
+            leads={scopedLeads} ledger={scopedLedger} agents={agents} loanTypes={loanTypes} stats={stats}
+            onGoToLeads={status => { setInitialLeadStatus(status); setTab('leads') }}
+            onGoToCommissions={() => setTab('commissions')}
+          />
         )}
 
         {tab === 'dashboard' && role === 'agent' && currentAgent && (
@@ -177,6 +180,7 @@ export default function App() {
             allAgents={agents} payoutMatrix={payoutMatrix}
             banks={banks} loanTypes={loanTypes} role={role} currentAgent={role === 'agent' ? currentAgent : null}
             onRefresh={loadAll} onSelectLead={l => setSelectedLeadId(l.id)}
+            initialStatusFilter={initialLeadStatus}
           />
         )}
 

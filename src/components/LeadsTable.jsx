@@ -5,9 +5,9 @@ import { computeCascade } from '../lib/commissionCalc'
 
 const STATUSES = ['New', 'Verified', 'Submitted', 'Disbursed', 'Rejected']
 
-export default function LeadsTable({ leads, agents, allAgents, banks, loanTypes, payoutMatrix, role, currentAgent, onRefresh, onSelectLead }) {
+export default function LeadsTable({ leads, agents, allAgents, banks, loanTypes, payoutMatrix, role, currentAgent, onRefresh, onSelectLead, initialStatusFilter }) {
   const [showForm, setShowForm] = useState(false)
-  const [statusFilter, setStatusFilter] = useState('All')
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'All')
   const [preset, setPreset] = useState('all')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')

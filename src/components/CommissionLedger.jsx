@@ -25,10 +25,15 @@ export default function CommissionLedger({ entries, leads, role, payoutMatrix, a
   const [customTo, setCustomTo] = useState('')
   const [selectedAgentId, setSelectedAgentId] = useState('')
   const [viewMode, setViewMode] = useState('team') // 'individual' | 'team'
+  const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'pending' | 'due' | 'paid'
 
   const filteredEntries = useMemo(() => {
     const range = presetToRange(preset, customFrom, customTo)
     let result = entries.filter(e => inRange(e.created_at, range))
+
+    if (statusFilter !== 'all') {
+      result = result.filter(e => e.payout_status === statusFilter)
+    }
 
     const targetId = role === 'admin' ? selectedAgentId : currentAgent?.id
     if (targetId) {
@@ -40,7 +45,7 @@ export default function CommissionLedger({ entries, leads, role, payoutMatrix, a
       }
     }
     return result
-  }, [entries, preset, customFrom, customTo, selectedAgentId, viewMode, role, currentAgent, agents])
+  }, [entries, preset, customFrom, customTo, selectedAgentId, viewMode, statusFilter, role, currentAgent, agents])
 
   const total = filteredEntries.reduce((s, e) => s + Number(e.amount), 0)
 
@@ -87,6 +92,15 @@ export default function CommissionLedger({ entries, leads, role, payoutMatrix, a
       </div>
 
       <div className="card" style={{ marginBottom: 16, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+          Status
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value="all">All</option>
+            <option value="pending">Pending (not invoiced)</option>
+            <option value="due">Due (invoiced, awaiting payment)</option>
+            <option value="paid">Paid</option>
+          </select>
+        </label>
         {role === 'admin' && (
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
             Agent
