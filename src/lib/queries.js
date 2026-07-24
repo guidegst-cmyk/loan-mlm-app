@@ -232,13 +232,34 @@ export async function markPaid(ledgerEntryId) {
 }
 
 // ---------- Agent self-onboarding ----------
-export async function submitAgentApplication({ name, phone, email, referral_code_entered, desired_username, password }) {
+export async function submitAgentApplication(payload) {
   const { data, error } = await supabase.rpc('submit_agent_application', {
-    p_name: name, p_phone: phone, p_email: email,
-    p_referral_code_entered: referral_code_entered || null,
-    p_desired_username: desired_username || null,
-    p_password: password,
+    p_name: payload.name, p_phone: payload.phone, p_email: payload.email,
+    p_referral_code_entered: payload.referral_code_entered || null,
+    p_desired_username: payload.desired_username || null,
+    p_password: payload.password,
+    p_father_name: payload.father_name || null,
+    p_present_address: payload.present_address || null,
+    p_permanent_address: payload.permanent_address || null,
+    p_pan_number: payload.pan_number || null,
+    p_aadhar_number: payload.aadhar_number || null,
+    p_qualification: payload.qualification || null,
+    p_bank_name: payload.bank_name || null,
+    p_account_number: payload.account_number || null,
+    p_ifsc_code: payload.ifsc_code || null,
   })
+  if (error) throw error
+  return data
+}
+
+export async function uploadApplicationDocument(applicationId, label, file) {
+  const path = `applications/${applicationId}/${label}/${Date.now()}_${file.name}`
+  const { error: upErr } = await supabase.storage.from('agent-documents').upload(path, file)
+  if (upErr) throw upErr
+  const { data, error } = await supabase
+    .from('application_documents')
+    .insert({ application_id: applicationId, label, file_path: path })
+    .select()
   if (error) throw error
   return data
 }
@@ -312,4 +333,19 @@ export function subscribeToNewNotifications(onInsert) {
     })
     .subscribe()
   return () => supabase.removeChannel(channel)
+}
+
+export async function fetchApplicationDocuments(applicationId) {
+  const { data, error } = await supabase
+    .from('application_documents')
+    .select('*')
+    .eq('application_id', applicationId)
+  if (error) throw error
+  return data
+}
+
+export async function getApplicationDocumentUrl(path) {
+  const { data, error } = await supabase.storage.from('agent-documents').createSignedUrl(path, 3600)
+  if (error) throw error
+  return data.signedUrl
 }

@@ -110,3 +110,17 @@ No SQL changes needed — frontend only, computed from already-loaded data.
 - The org chart now always shows the parent-of-focus (immediate senior) in a dashed box above the current
   node, in the same view — no extra click needed to see who someone reports to. For an agent's own default
   view, this is their real immediate senior; agents still can't navigate above their own position.
+
+## Expanded agent application (new)
+- Run `agent_application_expansion.sql` (after all previous onboarding migrations)
+- Application is now a 2-step form:
+  1. **Details** — Full name, Father's name, Phone, Email, Qualification, Present/Permanent address
+     (with "same as present" checkbox), PAN number, Aadhar number, Bank name/Account number/IFSC, plus the
+     existing referral/username/password fields. All new fields are compulsory.
+  2. **Documents** — PAN, Aadhar, Photo, Cancelled Cheque (all compulsory) + 2 optional document slots
+- Documents are uploaded immediately during the application (before admin approval) to the `agent-documents`
+  bucket, tracked in a new `application_documents` table
+- On admin approval, uploaded documents automatically migrate into `agent_documents` against the newly
+  created agent — they show up in Master Data → Agent Documents right away, no re-upload needed
+- Admin's Applications review panel now has a "View full details & documents" toggle per pending
+  application showing all KYC fields and document view-links before approving
