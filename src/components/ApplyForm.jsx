@@ -56,7 +56,7 @@ export default function ApplyForm({ prefillRef, onDone }) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f6f7f9', padding: 20 }}>
       <form onSubmit={submit} className="card" style={{ width: 380 }}>
-        <h2 style={{ marginTop: 0, color: '#1A3A5C' }}>Become a referral partner</h2>
+        <h2 style={{ marginTop: 0, color: '#1A3A5C' }}>Become a Partner</h2>
         <p style={{ fontSize: 13, color: '#777', marginTop: -8 }}>Fill this in — your application will be reviewed before your login is activated.</p>
 
         <FieldLabel>Full name</FieldLabel>
@@ -68,8 +68,22 @@ export default function ApplyForm({ prefillRef, onDone }) {
         <FieldLabel>Email</FieldLabel>
         <FieldInput type="email" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} />
 
-        <FieldLabel>Referral code (who referred you — optional if you're joining directly)</FieldLabel>
-        <FieldInput value={form.referral_code_entered} onChange={v => setForm(f => ({ ...f, referral_code_entered: v }))} placeholder="e.g. rk-006" />
+        {prefillRef ? (
+          <>
+            <FieldLabel>Referred by</FieldLabel>
+            <div style={{
+              width: '100%', padding: 9, border: '1px solid #ddd', borderRadius: 6,
+              background: '#f3f4f6', color: '#333', fontSize: 14, display: 'flex', alignItems: 'center', gap: 8
+            }}>
+              🔒 {prefillRef}
+            </div>
+          </>
+        ) : (
+          <>
+            <FieldLabel>Referral code</FieldLabel>
+            <FieldInput value={form.referral_code_entered} onChange={v => setForm(f => ({ ...f, referral_code_entered: v }))} placeholder="e.g. rk-006" />
+          </>
+        )}
 
         <FieldLabel>Choose a username (optional — defaults to your referral code once assigned)</FieldLabel>
         <FieldInput value={form.desired_username} onChange={v => setForm(f => ({ ...f, desired_username: v }))} />
