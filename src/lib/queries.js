@@ -280,7 +280,7 @@ export async function createNotification({ title, message, target_type, target_a
 export async function fetchNotifications() {
   const { data, error } = await supabase
     .from('notifications')
-    .select('*, agents(name)')
+    .select('*, agents!notifications_target_agent_id_fkey(name)')
     .order('created_at', { ascending: false })
   if (error) throw error
   return data
