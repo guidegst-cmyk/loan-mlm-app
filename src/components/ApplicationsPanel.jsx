@@ -4,6 +4,7 @@ import { fetchAgentApplications, approveAgentApplication, rejectAgentApplication
 export default function ApplicationsPanel({ agents, onRefresh }) {
   const [apps, setApps] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [approvingId, setApprovingId] = useState(null)
   const [refCode, setRefCode] = useState('')
   const [rejectingId, setRejectingId] = useState(null)
@@ -12,7 +13,9 @@ export default function ApplicationsPanel({ agents, onRefresh }) {
 
   async function load() {
     setLoading(true)
+    setLoadError('')
     try { setApps(await fetchAgentApplications()) }
+    catch (err) { setLoadError(err.message) }
     finally { setLoading(false) }
   }
 
@@ -57,6 +60,7 @@ export default function ApplicationsPanel({ agents, onRefresh }) {
   const reviewed = apps.filter(a => a.status !== 'Pending')
 
   if (loading) return <p>Loading applications…</p>
+  if (loadError) return <p style={{ color: '#a32d2d' }}>Error loading applications: {loadError}</p>
 
   return (
     <div>
@@ -73,7 +77,10 @@ export default function ApplicationsPanel({ agents, onRefresh }) {
               </div>
               <div style={{ fontSize: 12, color: '#777', marginTop: 2 }}>
                 Referral entered: {app.referral_code_entered || 'none'}
-                {app.parent ? ` (matched: ${app.parent.name})` : app.referral_code_entered ? ' — not found' : ''}
+                {(() => {
+                  const parentAgent = agents.find(a => a.id === app.parent_agent_id)
+                  return parentAgent ? ` (matched: ${parentAgent.name})` : app.referral_code_entered ? ' — not found' : ''
+                })()}
               </div>
               <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
                 Submitted {new Date(app.submitted_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}

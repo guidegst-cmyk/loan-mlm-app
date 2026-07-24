@@ -246,7 +246,7 @@ export async function submitAgentApplication({ name, phone, email, referral_code
 export async function fetchAgentApplications() {
   const { data, error } = await supabase
     .from('agent_applications_list')
-    .select('*, parent:agents(name)')
+    .select('*')
     .order('submitted_at', { ascending: false })
   if (error) throw error
   return data
