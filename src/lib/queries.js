@@ -285,3 +285,31 @@ export async function fetchNotifications() {
   if (error) throw error
   return data
 }
+
+// ---------- Notification read tracking ----------
+export async function fetchNotificationReads(agentId) {
+  const { data, error } = await supabase
+    .from('notification_reads')
+    .select('notification_id')
+    .eq('agent_id', agentId)
+  if (error) throw error
+  return data.map(r => r.notification_id)
+}
+
+export async function markNotificationsRead(agentId, notificationIds) {
+  if (!notificationIds.length) return
+  const rows = notificationIds.map(id => ({ notification_id: id, agent_id: agentId }))
+  const { error } = await supabase.from('notification_reads').upsert(rows, { onConflict: 'notification_id,agent_id' })
+  if (error) throw error
+}
+
+// ---------- Realtime: live-notify on new notification rows ----------
+export function subscribeToNewNotifications(onInsert) {
+  const channel = supabase
+    .channel('notifications-live')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, payload => {
+      onInsert(payload.new)
+    })
+    .subscribe()
+  return () => supabase.removeChannel(channel)
+}

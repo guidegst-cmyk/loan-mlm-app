@@ -81,7 +81,7 @@ export default function LeadDetailModal({ lead, currentAgent, onClose }) {
         </div>
 
         <h4 style={{ marginBottom: 4 }}>Documents ({uploadedCount} of {checklist.length} mandatory uploaded)</h4>
-        <table className="table">
+        <div className="table-scroll"><table className="table">
           <thead><tr><th>Document</th><th>Mandatory</th><th>Status</th><th></th></tr></thead>
           <tbody>
             {checklist.map(c => {
@@ -112,7 +112,7 @@ export default function LeadDetailModal({ lead, currentAgent, onClose }) {
               )
             })}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   )

@@ -1,22 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { createNotification, fetchNotifications, getSubtreeIds } from '../lib/queries'
+import { createNotification, getSubtreeIds } from '../lib/queries'
 
-export default function Notifications({ role, currentAgent, agents, onRefreshTick }) {
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
+export default function Notifications({ role, currentAgent, agents, items, readIds, onRefresh, onMarkRead }) {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ title: '', message: '', target_type: 'all', target_agent_id: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-
-  async function load() {
-    setLoading(true)
-    try { setItems(await fetchNotifications()) }
-    catch (err) { setError(err.message) }
-    finally { setLoading(false) }
-  }
-
-  useEffect(() => { load() }, [onRefreshTick])
 
   async function submit(e) {
     e.preventDefault()
@@ -30,7 +19,7 @@ export default function Notifications({ role, currentAgent, agents, onRefreshTic
       })
       setForm({ title: '', message: '', target_type: 'all', target_agent_id: '' })
       setShowForm(false)
-      await load()
+      onRefresh && onRefresh()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -53,14 +42,21 @@ export default function Notifications({ role, currentAgent, agents, onRefreshTic
     })
   }, [items, role, currentAgent, agents])
 
+  // Mark everything currently visible as read once the agent opens this tab
+  useEffect(() => {
+    if (role !== 'agent' || !currentAgent) return
+    const unread = visibleItems.filter(n => !readIds.has(n.id)).map(n => n.id)
+    if (unread.length) onMarkRead && onMarkRead(unread)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleItems.length])
+
   function targetLabel(n) {
     if (n.target_type === 'all') return 'Everyone'
-    if (n.target_type === 'individual') return `Individual: ${n.agents?.name || '—'}`
-    if (n.target_type === 'team') return `Team: ${n.agents?.name || '—'} + downline`
+    const agentName = n.agents?.name || agents.find(a => a.id === n.target_agent_id)?.name || '—'
+    if (n.target_type === 'individual') return `Individual: ${agentName}`
+    if (n.target_type === 'team') return `Team: ${agentName} + downline`
     return ''
   }
-
-  if (loading) return <p>Loading notifications…</p>
 
   return (
     <div>
@@ -74,7 +70,7 @@ export default function Notifications({ role, currentAgent, agents, onRefreshTic
       {showForm && (
         <form onSubmit={submit} className="card" style={{ marginBottom: 16 }}>
           <div className="grid2">
-            <label className="field full" style={{ gridColumn: '1/-1' }}>Title
+            <label style={{ gridColumn: '1/-1' }}>Title
               <input required value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
             </label>
             <label style={{ gridColumn: '1/-1' }}>Message
@@ -106,20 +102,24 @@ export default function Notifications({ role, currentAgent, agents, onRefreshTic
 
       {visibleItems.length === 0 && <p style={{ color: '#777', fontSize: 13 }}>No notifications yet.</p>}
 
-      {visibleItems.map(n => (
-        <div key={n.id} className="card" style={{ marginBottom: 10 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 12 }}>
-            <div>
-              <strong>{n.title}</strong>
-              <p style={{ fontSize: 14, color: '#444', marginTop: 6, marginBottom: 0, whiteSpace: 'pre-wrap' }}>{n.message}</p>
-            </div>
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontSize: 11, color: '#999' }}>{new Date(n.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-              {role === 'admin' && <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>{targetLabel(n)}</div>}
+      {visibleItems.map(n => {
+        const isUnread = role === 'agent' && !readIds.has(n.id)
+        return (
+          <div key={n.id} className="card" style={{ marginBottom: 10, borderLeft: isUnread ? '3px solid #1A3A5C' : undefined }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 12 }}>
+              <div>
+                <strong>{n.title}</strong>
+                {isUnread && <span className="badge status-due" style={{ marginLeft: 8 }}>new</span>}
+                <p style={{ fontSize: 14, color: '#444', marginTop: 6, marginBottom: 0, whiteSpace: 'pre-wrap' }}>{n.message}</p>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: 11, color: '#999' }}>{new Date(n.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                {role === 'admin' && <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>{targetLabel(n)}</div>}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

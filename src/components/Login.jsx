@@ -26,8 +26,8 @@ export default function Login({ onLogin, onApply }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f6f7f9' }}>
-      <form onSubmit={submit} className="card" style={{ width: 340 }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f6f7f9', padding: 20 }}>
+      <form onSubmit={submit} className="card" style={{ width: '100%', maxWidth: 340 }}>
         <h2 style={{ marginTop: 0, color: '#1A3A5C' }}>Loan Lead Referral Platform</h2>
         <p style={{ fontSize: 13, color: '#777', marginTop: -8 }}>Sign in to continue</p>
 

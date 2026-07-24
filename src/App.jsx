@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { fetchAgents, fetchBanks, fetchLoanTypes, fetchLeads, fetchCommissionLedger, fetchPayoutMatrix, fetchDocumentTypes, getSubtreeIds } from './lib/queries'
+import { fetchAgents, fetchBanks, fetchLoanTypes, fetchLeads, fetchCommissionLedger, fetchPayoutMatrix, fetchDocumentTypes, fetchNotifications, fetchNotificationReads, markNotificationsRead, subscribeToNewNotifications, getSubtreeIds } from './lib/queries'
 import { getSession, logout } from './lib/auth'
 import Login from './components/Login'
 import ApplyForm from './components/ApplyForm'
@@ -26,6 +26,8 @@ export default function App() {
   const [ledger, setLedger] = useState([])
   const [payoutMatrix, setPayoutMatrix] = useState([])
   const [documentTypes, setDocumentTypes] = useState([])
+  const [notifications, setNotifications] = useState([])
+  const [readIds, setReadIds] = useState(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedLeadId, setSelectedLeadId] = useState(null)
@@ -40,10 +42,13 @@ export default function App() {
     setLoading(true)
     setError(null)
     try {
-      const [ag, bk, lt, ld, cl, pm, dt] = await Promise.all([
-        fetchAgents(), fetchBanks(), fetchLoanTypes(), fetchLeads(), fetchCommissionLedger(), fetchPayoutMatrix(), fetchDocumentTypes(),
+      const [ag, bk, lt, ld, cl, pm, dt, nf] = await Promise.all([
+        fetchAgents(), fetchBanks(), fetchLoanTypes(), fetchLeads(), fetchCommissionLedger(), fetchPayoutMatrix(), fetchDocumentTypes(), fetchNotifications(),
       ])
-      setAgents(ag); setBanks(bk); setLoanTypes(lt); setLeads(ld); setLedger(cl); setPayoutMatrix(pm); setDocumentTypes(dt)
+      setAgents(ag); setBanks(bk); setLoanTypes(lt); setLeads(ld); setLedger(cl); setPayoutMatrix(pm); setDocumentTypes(dt); setNotifications(nf)
+      if (session?.role === 'agent' && session?.agent_id) {
+        setReadIds(new Set(await fetchNotificationReads(session.agent_id)))
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -52,6 +57,23 @@ export default function App() {
   }
 
   useEffect(() => { if (session) loadAll() }, [session])
+
+  // Live-update: when a new notification is inserted anywhere, push it into
+  // local state immediately (no refresh needed) so the badge/list update live.
+  useEffect(() => {
+    if (!session) return
+    const unsubscribe = subscribeToNewNotifications(newRow => {
+      setNotifications(prev => [newRow, ...prev])
+    })
+    return unsubscribe
+  }, [session])
+
+  async function handleMarkRead(notificationIds) {
+    if (!session?.agent_id) return
+    setReadIds(prev => new Set([...prev, ...notificationIds]))
+    try { await markNotificationsRead(session.agent_id, notificationIds) }
+    catch { /* non-critical, badge will just recompute next load */ }
+  }
 
   const scope = useMemo(() => {
     if (!session || role === 'admin' || !currentAgent) return null
@@ -68,6 +90,17 @@ export default function App() {
     const leadIds = new Set(scopedLeads.map(l => l.id))
     return ledger.filter(e => leadIds.has(e.lead_id))
   }, [ledger, scope, scopedLeads])
+
+  const unreadNotifCount = useMemo(() => {
+    if (role !== 'agent' || !currentAgent) return 0
+    return notifications.filter(n => {
+      if (readIds.has(n.id)) return false
+      if (n.target_type === 'all') return true
+      if (n.target_type === 'individual') return n.target_agent_id === currentAgent.id
+      if (n.target_type === 'team') return getSubtreeIds(n.target_agent_id, agents).has(currentAgent.id)
+      return false
+    }).length
+  }, [notifications, readIds, role, currentAgent, agents])
 
   const stats = useMemo(() => {
     const byStatus = {}
@@ -112,6 +145,12 @@ export default function App() {
         {tabs.map(t => (
           <button key={t} className={tab === t ? 'tab active' : 'tab'} onClick={() => setTab(t)}>
             {t === 'dashboard' ? (role === 'agent' ? 'My Dashboard' : 'Dashboard') : t === 'masterdata' ? 'Master Data' : t[0].toUpperCase() + t.slice(1)}
+            {t === 'notifications' && unreadNotifCount > 0 && (
+              <span style={{
+                marginLeft: 6, background: '#c0392b', color: '#fff', borderRadius: 10,
+                padding: '1px 7px', fontSize: 11, fontWeight: 700,
+              }}>{unreadNotifCount}</span>
+            )}
           </button>
         ))}
       </nav>
@@ -150,7 +189,10 @@ export default function App() {
           />
         )}
         {tab === 'notifications' && (
-          <Notifications role={role} currentAgent={role === 'agent' ? currentAgent : null} agents={agents} />
+          <Notifications
+            role={role} currentAgent={role === 'agent' ? currentAgent : null} agents={agents}
+            items={notifications} readIds={readIds} onRefresh={loadAll} onMarkRead={handleMarkRead}
+          />
         )}
 
         {tab === 'masterdata' && role === 'admin' && (

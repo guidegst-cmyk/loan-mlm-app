@@ -54,7 +54,7 @@ export default function AgentDocumentsPanel({ agents, documentTypes }) {
       </label>
 
       {agentId && (
-        <table className="table">
+        <div className="table-scroll"><table className="table">
           <thead><tr><th>Document</th><th>Status</th><th></th></tr></thead>
           <tbody>
             {relevant.map(dt => {
@@ -82,7 +82,7 @@ export default function AgentDocumentsPanel({ agents, documentTypes }) {
               )
             })}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   )

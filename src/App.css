@@ -57,3 +57,28 @@ body { margin: 0; font-family: Arial, sans-serif; background: #f6f7f9; color: #1
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 .modal { background: #fff; border-radius: 10px; padding: 20px; max-width: 700px; width: 100%; max-height: 80vh; overflow: auto; }
+
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
+.table-scroll .table { border-radius: 0; }
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 900px) {
+  .content { padding: 16px; }
+  .topbar { padding: 12px 16px; flex-wrap: wrap; gap: 10px; }
+  .brand { font-size: 16px; }
+  .tabs { padding: 8px 12px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+  .tab { padding: 10px 12px; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-card { padding: 14px; }
+  .stat-num { font-size: 21px; }
+  .grid2 { grid-template-columns: 1fr; }
+  .modal { padding: 16px; max-height: 85vh; }
+  .modal-backdrop { padding: 10px; align-items: flex-start; padding-top: 40px; }
+  .table th, .table td { padding: 8px 10px; font-size: 12.5px; }
+}
+
+@media (max-width: 520px) {
+  .stat-grid { grid-template-columns: 1fr; }
+  .role-switcher { flex-direction: column; align-items: flex-end; gap: 6px; }
+}
+

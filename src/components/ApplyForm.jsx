@@ -41,7 +41,7 @@ export default function ApplyForm({ prefillRef, onDone }) {
   if (submitted) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f6f7f9' }}>
-        <div className="card" style={{ width: 380, textAlign: 'center' }}>
+        <div className="card" style={{ width: '100%', maxWidth: 380, textAlign: 'center' }}>
           <h2 style={{ color: '#1A3A5C' }}>Application submitted</h2>
           <p style={{ color: '#555', fontSize: 14 }}>
             Thanks, {form.name}! Your application is pending admin review. You'll be able to log in with the username
@@ -55,7 +55,7 @@ export default function ApplyForm({ prefillRef, onDone }) {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f6f7f9', padding: 20 }}>
-      <form onSubmit={submit} className="card" style={{ width: 380 }}>
+      <form onSubmit={submit} className="card" style={{ width: '100%', maxWidth: 380 }}>
         <h2 style={{ marginTop: 0, color: '#1A3A5C' }}>Become a Partner</h2>
         <p style={{ fontSize: 13, color: '#777', marginTop: -8 }}>Fill this in — your application will be reviewed before your login is activated.</p>
 

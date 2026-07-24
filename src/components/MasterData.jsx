@@ -108,7 +108,7 @@ function AgentsPanel({ agents, onRefresh }) {
         </form>
       )}
 
-      <table className="table">
+      <div className="table-scroll"><table className="table">
         <thead><tr><th>Name</th><th>Referral code</th><th>Parent</th><th>Status</th><th></th></tr></thead>
         <tbody>
           {agents.map(a => {
@@ -124,7 +124,7 @@ function AgentsPanel({ agents, onRefresh }) {
             )
           })}
         </tbody>
-      </table>
+      </table></div>
     </div>
   )
 }
@@ -267,7 +267,7 @@ function PayoutMatrixPanel({ banks, loanTypes, payoutMatrix, onRefresh }) {
         </form>
       )}
 
-      <table className="table">
+      <div className="table-scroll"><table className="table">
         <thead><tr><th>Bank</th><th>Loan type</th><th>Type</th><th>Value</th><th>Active</th><th></th></tr></thead>
         <tbody>
           {payoutMatrix.map(p => (
@@ -299,7 +299,7 @@ function PayoutMatrixPanel({ banks, loanTypes, payoutMatrix, onRefresh }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   )
 }

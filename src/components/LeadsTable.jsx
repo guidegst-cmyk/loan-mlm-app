@@ -198,7 +198,7 @@ export default function LeadsTable({ leads, agents, allAgents, banks, loanTypes,
         </form>
       )}
 
-      <table className="table">
+      <div className="table-scroll"><table className="table">
         <thead>
           <tr>
             <th>Lead #</th><th>Customer</th><th>Generator</th><th>Bank</th><th>Loan type</th>
@@ -224,7 +224,7 @@ export default function LeadsTable({ leads, agents, allAgents, banks, loanTypes,
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
 
       {disburseFor && (
         <div className="modal-backdrop" onClick={() => setDisburseFor(null)}>

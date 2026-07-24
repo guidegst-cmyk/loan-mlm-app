@@ -53,7 +53,7 @@ export default function AgentTree({ agents, role, currentAgent }) {
   }
 
   return (
-    <div style={{ fontSize: 14 }}>
+    <div style={{ fontSize: 14, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
       {immediateSenior && (
         <div style={{ marginBottom: 10 }}>
           <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', marginBottom: 4 }}>Your immediate senior</div>

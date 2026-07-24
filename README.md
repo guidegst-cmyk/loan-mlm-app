@@ -71,3 +71,15 @@ are involved.
   agent + their full downline), or **one specific agent**
 - Agent: sees only notifications actually targeted to them (all-broadcast, their team, or sent to them
   individually) under their own **Notifications** tab
+
+## Notifications: unread badge + live updates (new)
+- Run `notifications_realtime_migration.sql` (enables Supabase Realtime on the notifications table +
+  adds read tracking) after `notifications_migration.sql`
+- Agent's Notifications tab now shows a red unread-count badge; opening the tab marks visible items as read
+- New notifications appear live for anyone with the app open (no refresh needed) via Supabase Realtime
+
+## Mobile responsiveness (new)
+Added proper responsive breakpoints — tables scroll horizontally on narrow screens instead of overflowing,
+tabs scroll horizontally, stat cards collapse from 4 → 2 → 1 columns, forms collapse from 2 → 1 columns,
+and the login/apply screens no longer overflow on narrow phones (e.g. iPhone SE at 320px wide).
+No SQL changes needed for this — frontend-only.

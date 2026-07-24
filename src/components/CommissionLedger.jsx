@@ -147,7 +147,7 @@ export default function CommissionLedger({ entries, leads, role, payoutMatrix, a
             </button>
 
             {isOpen && (
-              <table className="table" style={{ borderRadius: 0 }}>
+              <div className="table-scroll"><table className="table" style={{ borderRadius: 0 }}>
                 <thead>
                   <tr>
                     <th>Level</th><th>Agent</th><th>Role</th><th>Amount</th>
@@ -205,7 +205,7 @@ export default function CommissionLedger({ entries, leads, role, payoutMatrix, a
                     <td></td>
                   </tr>
                 </tbody>
-              </table>
+              </table></div>
             )}
           </div>
         )

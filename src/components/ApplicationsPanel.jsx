@@ -114,7 +114,7 @@ export default function ApplicationsPanel({ agents, onRefresh }) {
       {reviewed.length > 0 && (
         <>
           <h4 style={{ marginTop: 24 }}>Reviewed ({reviewed.length})</h4>
-          <table className="table">
+          <div className="table-scroll"><table className="table">
             <thead><tr><th>Name</th><th>Status</th><th>Note</th></tr></thead>
             <tbody>
               {reviewed.map(app => (
@@ -125,7 +125,7 @@ export default function ApplicationsPanel({ agents, onRefresh }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </>
       )}
     </div>
