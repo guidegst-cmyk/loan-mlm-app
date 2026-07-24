@@ -136,7 +136,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">Loan Lead Referral Platform</div>
+        <div className="brand">LoanNexus.in</div>
         <div className="role-switcher" style={{ alignItems: 'center' }}>
           <span style={{ fontSize: 13 }}>
             {role === 'admin' ? 'Admin' : currentAgent?.name} ({role})

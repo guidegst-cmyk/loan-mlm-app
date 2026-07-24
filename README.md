@@ -95,3 +95,9 @@ No SQL changes needed — frontend only, computed from already-loaded data.
 - **Top performers** — top 5 agents by total commission earned
 - **Flagged agents** — agents with ≥34% rejection rate (min. 2 decided leads) or zero leads generated yet;
   rule is shown in the UI and can be tuned in `src/lib/dashboardAnalytics.js`
+
+## Final client-handoff fixes
+- Rebranded throughout: "Loan Lead Referral Platform" → **LoanNexus.in**
+- Agents tab is now an org-chart style drill-down: click any agent's name to see their team open up below
+  (connector lines, org-chart boxes). A "← Back" button appears to go back up one level. Agents can only
+  ever drill into their own downline — they start locked at their own position and can't navigate above it.

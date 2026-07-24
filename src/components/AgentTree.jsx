@@ -1,75 +1,82 @@
-import { getSubtreeIds } from '../lib/queries'
+import { useState } from 'react'
 
 export default function AgentTree({ agents, role, currentAgent }) {
   const isAgent = role === 'agent' && currentAgent
+  const defaultFocusId = isAgent ? currentAgent.id : (agents.find(a => !a.parent_agent_id)?.id || null)
 
-  // For an agent: only their own subtree (self + juniors) is visible as a
-  // tree, plus their immediate senior shown separately for context. The
-  // rest of the company hierarchy is never sent to the browser at all.
-  let visibleAgents = agents
-  let immediateSenior = null
+  const [focusId, setFocusId] = useState(defaultFocusId)
+  const [history, setHistory] = useState([])
 
-  if (isAgent) {
-    const subtree = getSubtreeIds(currentAgent.id, agents)
-    visibleAgents = agents.filter(a => subtree.has(a.id))
-    if (currentAgent.parent_agent_id) {
-      immediateSenior = agents.find(a => a.id === currentAgent.parent_agent_id) || null
-    }
+  const byId = {}
+  agents.forEach(a => { byId[a.id] = a })
+  const focus = byId[focusId]
+  const children = agents.filter(a => a.parent_agent_id === focusId)
+
+  function drillInto(childId) {
+    setHistory(h => [...h, focusId])
+    setFocusId(childId)
+  }
+  function goBack() {
+    setHistory(h => {
+      const copy = [...h]
+      const prev = copy.pop()
+      setFocusId(prev)
+      return copy
+    })
   }
 
-  const childrenOf = {}
-  visibleAgents.forEach(a => {
-    const p = a.parent_agent_id || 'root'
-    if (!childrenOf[p]) childrenOf[p] = []
-    childrenOf[p].push(a)
-  })
-  const roots = isAgent ? [currentAgent] : visibleAgents.filter(a => !a.parent_agent_id)
+  if (!focus) return <p style={{ color: '#777' }}>No agent data.</p>
 
-  function renderNode(agent, depth) {
-    const kids = childrenOf[agent.id] || []
-    const isSelf = isAgent && agent.id === currentAgent.id
-    return (
-      <div key={agent.id} style={{ marginLeft: depth * 20 }}>
-        <div
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '4px 10px', margin: '3px 0', borderRadius: 6,
-            border: isSelf ? '1.5px solid #1A3A5C' : '1px solid #ddd',
-            background: agent.status === 'inactive' ? '#f5f5f5' : '#fff',
-          }}
-        >
-          <span style={{ fontWeight: isSelf ? 700 : 500 }}>{agent.name}</span>
-          <span style={{ fontSize: 12, color: '#888' }}>{agent.referral_code}</span>
-          {isSelf && <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, background: '#e6f1fb', color: '#042c53' }}>you</span>}
-          {agent.status === 'inactive' && (
-            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, background: '#fdecea', color: '#c0392b' }}>
-              inactive
-            </span>
-          )}
-        </div>
-        {kids.map(k => renderNode(k, depth + 1))}
-      </div>
-    )
-  }
+  // For an agent, they can never navigate above their own position
+  const canGoBack = history.length > 0 && (!isAgent || focusId !== currentAgent.id)
+  const parentOfFocus = byId[focus.parent_agent_id]
 
   return (
-    <div style={{ fontSize: 14, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-      {immediateSenior && (
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', marginBottom: 4 }}>Your immediate senior</div>
-          <div
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '4px 10px', borderRadius: 6, border: '1px dashed #bbb', background: '#fafafa', color: '#666'
-            }}
-          >
-            <span>{immediateSenior.name}</span>
-            <span style={{ fontSize: 12, color: '#999' }}>{immediateSenior.referral_code}</span>
-          </div>
+    <div>
+      {canGoBack && (
+        <button className="btn" style={{ background: '#3a5a7c', marginBottom: 20 }} onClick={goBack}>
+          ← Back
+        </button>
+      )}
+
+      {!isAgent && parentOfFocus && history.length === 0 && (
+        <div style={{ textAlign: 'center', marginBottom: 8 }}>
+          <span style={{ fontSize: 11, color: '#999', textTransform: 'uppercase' }}>Reports to: {parentOfFocus.name}</span>
         </div>
       )}
-      {isAgent && <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', marginBottom: 4 }}>You & your team</div>}
-      {roots.map(r => renderNode(r, 0))}
+
+      <div className="org-chart">
+        <div className="org-node org-node-focus">
+          <div className="org-node-name">{focus.name}</div>
+          <div className="org-node-code">{focus.referral_code}</div>
+          {focus.status === 'inactive' && <span className="badge status-Rejected" style={{ marginTop: 4 }}>inactive</span>}
+        </div>
+
+        {children.length > 0 && (
+          <>
+            <div className="org-connector-down" />
+            <div className={`org-children-row ${children.length === 1 ? 'single' : ''}`}>
+              {children.map(c => (
+                <div key={c.id} className="org-child-wrapper">
+                  <div className="org-connector-stub" />
+                  <button className="org-node org-node-child" onClick={() => drillInto(c.id)}>
+                    <div className="org-node-name">{c.name}</div>
+                    <div className="org-node-code">{c.referral_code}</div>
+                    {c.status === 'inactive' && <span className="badge status-Rejected" style={{ marginTop: 4 }}>inactive</span>}
+                    {agents.some(a => a.parent_agent_id === c.id) && (
+                      <div className="org-node-hint">{agents.filter(a => a.parent_agent_id === c.id).length} report(s) — click to view</div>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {children.length === 0 && (
+          <p style={{ textAlign: 'center', color: '#999', fontSize: 13, marginTop: 20 }}>No downline under {focus.name}.</p>
+        )}
+      </div>
     </div>
   )
 }
