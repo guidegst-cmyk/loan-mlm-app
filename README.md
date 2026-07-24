@@ -64,3 +64,10 @@ are involved.
 - Admin reviews under **Master Data → Applications**: assign a referral code and **Approve** (creates the
   real agent + activates their login), or **Reject** with a reason
 - Run `agent_self_onboarding.sql` before using this
+
+## Notifications (new)
+- Run `notifications_migration.sql` before using this
+- Admin: **Notifications** tab → compose a title/message, send to **Everyone**, **a specific team** (an
+  agent + their full downline), or **one specific agent**
+- Agent: sees only notifications actually targeted to them (all-broadcast, their team, or sent to them
+  individually) under their own **Notifications** tab

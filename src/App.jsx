@@ -9,6 +9,7 @@ import LeadsTable from './components/LeadsTable'
 import CommissionLedger from './components/CommissionLedger'
 import LeadDetailModal from './components/LeadDetailModal'
 import MasterData from './components/MasterData'
+import Notifications from './components/Notifications'
 import './App.css'
 
 export default function App() {
@@ -87,8 +88,8 @@ export default function App() {
   if (error) return <div className="center-msg error">Error: {error}. Check your .env credentials and that the schema is deployed.</div>
 
   const tabs = role === 'admin'
-    ? ['dashboard', 'agents', 'leads', 'commissions', 'masterdata']
-    : ['dashboard', 'agents', 'leads', 'commissions']
+    ? ['dashboard', 'agents', 'leads', 'commissions', 'notifications', 'masterdata']
+    : ['dashboard', 'agents', 'leads', 'commissions', 'notifications']
 
   function handleLogout() {
     logout()
@@ -148,6 +149,10 @@ export default function App() {
             onRefresh={loadAll}
           />
         )}
+        {tab === 'notifications' && (
+          <Notifications role={role} currentAgent={role === 'agent' ? currentAgent : null} agents={agents} />
+        )}
+
         {tab === 'masterdata' && role === 'admin' && (
           <MasterData
             agents={agents} banks={banks} loanTypes={loanTypes}

@@ -266,3 +266,22 @@ export async function rejectAgentApplication(applicationId, reason) {
   })
   if (error) throw error
 }
+
+// ---------- Notifications (one-way admin broadcast) ----------
+export async function createNotification({ title, message, target_type, target_agent_id }) {
+  const { data, error } = await supabase
+    .from('notifications')
+    .insert({ title, message, target_type, target_agent_id: target_agent_id || null })
+    .select()
+  if (error) throw error
+  return data
+}
+
+export async function fetchNotifications() {
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*, agents(name)')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
