@@ -68,6 +68,8 @@ body { margin: 0; font-family: Arial, sans-serif; background: #f6f7f9; color: #1
   text-align: center; min-width: 140px; font-family: inherit; cursor: default;
 }
 .org-node-focus { border-color: #1A3A5C; border-width: 2px; background: #f0f4f8; }
+.org-node-parent { border-style: dashed; background: #fafafa; color: #777; opacity: 0.85; }
+.org-node-org { border-color: #C89B3C; background: #fdf8ee; }
 .org-node-child { cursor: pointer; transition: 0.15s; }
 .org-node-child:hover { border-color: #1A3A5C; box-shadow: 0 6px 14px -8px rgba(26,58,91,.35); transform: translateY(-2px); }
 .org-node-name { font-weight: 700; font-size: 14px; color: #1A3A5C; }

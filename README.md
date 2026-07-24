@@ -101,3 +101,12 @@ No SQL changes needed — frontend only, computed from already-loaded data.
 - Agents tab is now an org-chart style drill-down: click any agent's name to see their team open up below
   (connector lines, org-chart boxes). A "← Back" button appears to go back up one level. Agents can only
   ever drill into their own downline — they start locked at their own position and can't navigate above it.
+
+## Agents tab fix
+- Fixed: admin's org chart was defaulting to whichever root-level agent came first alphabetically
+  (e.g. a self-onboarded agent with no referral code) instead of the real company root. Now, if there are
+  multiple root-level agents, admin sees a virtual "🏢 Organization" node with all real roots as its
+  children to drill into.
+- The org chart now always shows the parent-of-focus (immediate senior) in a dashed box above the current
+  node, in the same view — no extra click needed to see who someone reports to. For an agent's own default
+  view, this is their real immediate senior; agents still can't navigate above their own position.

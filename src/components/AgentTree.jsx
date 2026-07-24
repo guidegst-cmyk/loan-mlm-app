@@ -1,16 +1,40 @@
 import { useState } from 'react'
 
+const ORG_ID = '__org__'
+
 export default function AgentTree({ agents, role, currentAgent }) {
   const isAgent = role === 'agent' && currentAgent
-  const defaultFocusId = isAgent ? currentAgent.id : (agents.find(a => !a.parent_agent_id)?.id || null)
+  const realRoots = agents.filter(a => !a.parent_agent_id)
+  const hasMultipleRoots = realRoots.length > 1
+
+  const defaultFocusId = isAgent
+    ? currentAgent.id
+    : (hasMultipleRoots ? ORG_ID : (realRoots[0]?.id || null))
 
   const [focusId, setFocusId] = useState(defaultFocusId)
   const [history, setHistory] = useState([])
 
   const byId = {}
   agents.forEach(a => { byId[a.id] = a })
-  const focus = byId[focusId]
-  const children = agents.filter(a => a.parent_agent_id === focusId)
+
+  function getChildren(id) {
+    if (id === ORG_ID) return realRoots
+    return agents.filter(a => a.parent_agent_id === id)
+  }
+  function getParentId(id) {
+    if (id === ORG_ID) return null
+    const a = byId[id]
+    if (!a) return null
+    if (a.parent_agent_id) return a.parent_agent_id
+    // this agent is itself a root — its "parent" is the virtual org node,
+    // but never surface that to an agent (only admins should see it)
+    return (!isAgent && hasMultipleRoots) ? ORG_ID : null
+  }
+
+  const focus = focusId === ORG_ID ? { id: ORG_ID, name: 'Organization', referral_code: '', isOrg: true } : byId[focusId]
+  const children = focus ? getChildren(focus.id) : []
+  const parentId = focus ? getParentId(focus.id) : null
+  const parentNode = parentId ? (parentId === ORG_ID ? { id: ORG_ID, name: 'Organization', isOrg: true } : byId[parentId]) : null
 
   function drillInto(childId) {
     setHistory(h => [...h, focusId])
@@ -27,9 +51,7 @@ export default function AgentTree({ agents, role, currentAgent }) {
 
   if (!focus) return <p style={{ color: '#777' }}>No agent data.</p>
 
-  // For an agent, they can never navigate above their own position
-  const canGoBack = history.length > 0 && (!isAgent || focusId !== currentAgent.id)
-  const parentOfFocus = byId[focus.parent_agent_id]
+  const canGoBack = history.length > 0
 
   return (
     <div>
@@ -39,17 +61,25 @@ export default function AgentTree({ agents, role, currentAgent }) {
         </button>
       )}
 
-      {!isAgent && parentOfFocus && history.length === 0 && (
-        <div style={{ textAlign: 'center', marginBottom: 8 }}>
-          <span style={{ fontSize: 11, color: '#999', textTransform: 'uppercase' }}>Reports to: {parentOfFocus.name}</span>
-        </div>
-      )}
-
       <div className="org-chart">
-        <div className="org-node org-node-focus">
-          <div className="org-node-name">{focus.name}</div>
-          <div className="org-node-code">{focus.referral_code}</div>
-          {focus.status === 'inactive' && <span className="badge status-Rejected" style={{ marginTop: 4 }}>inactive</span>}
+        {parentNode && (
+          <>
+            <div className={`org-node org-node-parent ${parentNode.isOrg ? 'org-node-org' : ''}`}>
+              <div className="org-node-name">{parentNode.isOrg ? '🏢 Organization' : parentNode.name}</div>
+              {!parentNode.isOrg && <div className="org-node-code">{parentNode.referral_code}</div>}
+              {isAgent && focus.id === currentAgent.id && (
+                <div className="org-node-hint" style={{ color: '#999' }}>your immediate senior</div>
+              )}
+            </div>
+            <div className="org-connector-down" />
+          </>
+        )}
+
+        <div className={`org-node org-node-focus ${focus.isOrg ? 'org-node-org' : ''}`}>
+          <div className="org-node-name">{focus.isOrg ? '🏢 Organization' : focus.name}</div>
+          {!focus.isOrg && <div className="org-node-code">{focus.referral_code}</div>}
+          {isAgent && focus.id === currentAgent.id && <div className="org-node-hint">you</div>}
+          {!focus.isOrg && focus.status === 'inactive' && <span className="badge status-Rejected" style={{ marginTop: 4 }}>inactive</span>}
         </div>
 
         {children.length > 0 && (
@@ -74,7 +104,9 @@ export default function AgentTree({ agents, role, currentAgent }) {
         )}
 
         {children.length === 0 && (
-          <p style={{ textAlign: 'center', color: '#999', fontSize: 13, marginTop: 20 }}>No downline under {focus.name}.</p>
+          <p style={{ textAlign: 'center', color: '#999', fontSize: 13, marginTop: 20 }}>
+            No downline under {focus.isOrg ? 'the organization' : focus.name}.
+          </p>
         )}
       </div>
     </div>
