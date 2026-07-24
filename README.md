@@ -56,3 +56,11 @@ rendered for agents). Anyone comfortable opening browser dev tools could see the
 True data-level isolation requires replacing the dummy login with Supabase Auth + RLS policies scoped to
 auth.uid() — recommended before a real production rollout, especially once real agent commission figures
 are involved.
+
+## Agent self-onboarding (new)
+- Public application form at `<your-url>/?apply=true` (or share `<your-url>/?apply=true&ref=<referral_code>`
+  to prefill who referred them — each agent's "My Dashboard" now shows their own shareable invite link)
+- Applicant sets their own username/password; application sits as **Pending**
+- Admin reviews under **Master Data → Applications**: assign a referral code and **Approve** (creates the
+  real agent + activates their login), or **Reject** with a reason
+- Run `agent_self_onboarding.sql` before using this

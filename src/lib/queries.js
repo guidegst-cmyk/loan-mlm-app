@@ -230,3 +230,39 @@ export async function markPaid(ledgerEntryId) {
   if (error) throw error
   return data
 }
+
+// ---------- Agent self-onboarding ----------
+export async function submitAgentApplication({ name, phone, email, referral_code_entered, desired_username, password }) {
+  const { data, error } = await supabase.rpc('submit_agent_application', {
+    p_name: name, p_phone: phone, p_email: email,
+    p_referral_code_entered: referral_code_entered || null,
+    p_desired_username: desired_username || null,
+    p_password: password,
+  })
+  if (error) throw error
+  return data
+}
+
+export async function fetchAgentApplications() {
+  const { data, error } = await supabase
+    .from('agent_applications_list')
+    .select('*, parent:agents(name)')
+    .order('submitted_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
+export async function approveAgentApplication(applicationId, referralCode) {
+  const { data, error } = await supabase.rpc('approve_agent_application', {
+    p_application_id: applicationId, p_referral_code: referralCode,
+  })
+  if (error) throw error
+  return data
+}
+
+export async function rejectAgentApplication(applicationId, reason) {
+  const { error } = await supabase.rpc('reject_agent_application', {
+    p_application_id: applicationId, p_reason: reason,
+  })
+  if (error) throw error
+}

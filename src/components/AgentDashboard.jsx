@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { computeCascade } from '../lib/commissionCalc'
 
 const STATUSES = ['New', 'Verified', 'Submitted', 'Disbursed', 'Rejected']
@@ -40,6 +40,8 @@ export default function AgentDashboard({ currentAgent, leads, ledger, agents, al
   return (
     <div>
       <h3 style={{ marginTop: 0 }}>Welcome, {currentAgent.name}</h3>
+
+      <InviteLinkBox referralCode={currentAgent.referral_code} />
 
       <div className="stat-grid" style={{ marginBottom: 12 }}>
         <div className="stat-card"><div className="stat-num">₹{expected.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div><div className="stat-label">Expected (pipeline, not yet disbursed)</div></div>
@@ -98,6 +100,27 @@ export default function AgentDashboard({ currentAgent, leads, ledger, agents, al
           </table>
         </div>
       )}
+    </div>
+  )
+}
+
+function InviteLinkBox({ referralCode }) {
+  const link = `${window.location.origin}/?apply=true&ref=${referralCode}`
+  const [copied, setCopied] = useState(false)
+
+  function copy() {
+    navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ fontSize: 13 }}>
+        <strong>Your invite link</strong> — share this to bring new agents into your team
+        <div style={{ color: '#777', fontSize: 12, marginTop: 2, wordBreak: 'break-all' }}>{link}</div>
+      </div>
+      <button className="btn" onClick={copy}>{copied ? 'Copied!' : 'Copy link'}</button>
     </div>
   )
 }

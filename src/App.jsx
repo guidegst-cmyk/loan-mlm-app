@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { fetchAgents, fetchBanks, fetchLoanTypes, fetchLeads, fetchCommissionLedger, fetchPayoutMatrix, fetchDocumentTypes, getSubtreeIds } from './lib/queries'
 import { getSession, logout } from './lib/auth'
 import Login from './components/Login'
+import ApplyForm from './components/ApplyForm'
 import AgentDashboard from './components/AgentDashboard'
 import AgentTree from './components/AgentTree'
 import LeadsTable from './components/LeadsTable'
@@ -13,6 +14,9 @@ import './App.css'
 export default function App() {
   const [session, setSession] = useState(() => getSession())
   const [tab, setTab] = useState('dashboard')
+  const params = new URLSearchParams(window.location.search)
+  const [showApply, setShowApply] = useState(params.get('apply') === 'true')
+  const prefillRef = params.get('ref') || ''
 
   const [agents, setAgents] = useState([])
   const [banks, setBanks] = useState([])
@@ -73,7 +77,10 @@ export default function App() {
   }, [scopedLeads, scopedLedger])
 
   if (!session) {
-    return <Login onLogin={setSession} />
+    if (showApply) {
+      return <ApplyForm prefillRef={prefillRef} onDone={() => setShowApply(false)} />
+    }
+    return <Login onLogin={setSession} onApply={() => setShowApply(true)} />
   }
 
   if (loading) return <div className="center-msg">Loading…</div>

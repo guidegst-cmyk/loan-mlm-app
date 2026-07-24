@@ -4,8 +4,9 @@ import {
   createAgent, updateAgent, createAgentLogin,
 } from '../lib/queries'
 import AgentDocumentsPanel from './AgentDocumentsPanel'
+import ApplicationsPanel from './ApplicationsPanel'
 
-const SUBTABS = ['Agents', 'Banks & Loan Types', 'Payout Matrix', 'Agent Documents']
+const SUBTABS = ['Agents', 'Applications', 'Banks & Loan Types', 'Payout Matrix', 'Agent Documents']
 
 export default function MasterData({ agents, banks, loanTypes, payoutMatrix, documentTypes, onRefresh }) {
   const [sub, setSub] = useState('Agents')
@@ -26,6 +27,7 @@ export default function MasterData({ agents, banks, loanTypes, payoutMatrix, doc
       </div>
 
       {sub === 'Agents' && <AgentsPanel agents={agents} onRefresh={onRefresh} />}
+      {sub === 'Applications' && <ApplicationsPanel agents={agents} onRefresh={onRefresh} />}
       {sub === 'Banks & Loan Types' && <BanksLoanTypesPanel banks={banks} loanTypes={loanTypes} onRefresh={onRefresh} />}
       {sub === 'Payout Matrix' && <PayoutMatrixPanel banks={banks} loanTypes={loanTypes} payoutMatrix={payoutMatrix} onRefresh={onRefresh} />}
       {sub === 'Agent Documents' && <AgentDocumentsPanel agents={agents} documentTypes={documentTypes} />}

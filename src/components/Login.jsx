@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { login } from '../lib/auth'
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, onApply }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -54,6 +54,10 @@ export default function Login({ onLogin }) {
           Demo credentials — admin: <code>admin</code>, or any agent's referral code (e.g. <code>rs-root</code>, <code>pv-001</code>).
           Default password for everyone: <code>Welcome@123</code>
         </p>
+
+        <button type="button" className="link" onClick={onApply} style={{ display: 'block', margin: '14px auto 0' }}>
+          New agent? Apply here
+        </button>
       </form>
     </div>
   )
