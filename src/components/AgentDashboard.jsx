@@ -114,13 +114,21 @@ function InviteLinkBox({ referralCode }) {
     setTimeout(() => setCopied(false), 1500)
   }
 
+  function shareOnWhatsApp() {
+    const message = `Join my team on LoanNexus.in — apply here: ${link}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank')
+  }
+
   return (
     <div className="card" style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
       <div style={{ fontSize: 13 }}>
         <strong>Your invite link</strong> — share this to bring new agents into your team
         <div style={{ color: '#777', fontSize: 12, marginTop: 2, wordBreak: 'break-all' }}>{link}</div>
       </div>
-      <button className="btn" onClick={copy}>{copied ? 'Copied!' : 'Copy link'}</button>
+      <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+        <button className="btn" style={{ background: '#25D366' }} onClick={shareOnWhatsApp}>Share via WhatsApp</button>
+        <button className="btn" onClick={copy}>{copied ? 'Copied!' : 'Copy link'}</button>
+      </div>
     </div>
   )
 }
