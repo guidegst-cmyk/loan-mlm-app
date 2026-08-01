@@ -124,3 +124,35 @@ No SQL changes needed — frontend only, computed from already-loaded data.
   created agent — they show up in Master Data → Agent Documents right away, no re-upload needed
 - Admin's Applications review panel now has a "View full details & documents" toggle per pending
   application showing all KYC fields and document view-links before approving
+
+## Six changes (new)
+Run `six_changes_migration.sql` before using this.
+
+1. **Multi-bank submission** — no bank is picked at lead creation anymore. At "Submitted" status, pick up
+   to 3 banks the file went to. At "Disbursed", pick the final bank from those (or any bank if it skipped
+   Submitted). Expected commission shows as a **range**: full database range (all banks, that loan type) at
+   creation, narrows to the 3 submitted banks' range once Submitted, becomes a fixed figure at Disbursed.
+   Agent Dashboard's "Expected" stat uses the midpoint of each pipeline lead's range as an estimate.
+2. **Co-applicant details** — optional toggle on the lead form; name/PAN/Aadhar/address, shown in Lead Detail.
+3. **Security & Insurance** — editable section in Lead Detail once a lead is Disbursed (security details,
+   insurer, policy number, cover amount, and vehicle make/model for Car Loan / Two-Wheeler Loan).
+4. **TDS on commission** — "Mark paid" now opens a small dialog defaulting to 5% TDS (Sec 194H, editable),
+   shows net payable, and stores both gross/TDS/net on the ledger entry.
+5. **Applicant/co-applicant PAN, Aadhar, Address** captured at lead creation; **PAN-based duplicate
+   detection** shows a warning banner on the create-lead form if that PAN already has leads in the system.
+6. **Rejection reason** — setting a lead to Rejected now opens a small dialog requiring a reason, shown in
+   Lead Detail.
+
+## New commission formula (confirmed with client)
+Run `new_commission_formula_migration.sql` before using this.
+- Company always gets a flat **30% of D**.
+- Remaining 70% (pool) cascades using "topmost absorbs remainder" uniformly at every level, including
+  the generator: if the generator has no seniors, they get the full 70%; otherwise they get a fixed
+  60% of the pool (=42% of D), and each further level gets 60% of what remains, up to L5, with whichever
+  level is topmost in that lead's actual chain absorbing the full remainder.
+- Verified matrix (D=100%): 1 gen → Company 30 / Gen 70. 2 gen → 30/42/28. 3 gen → 30/42/16.8/11.2.
+  4 gen → 30/42/16.8/6.72/4.48. 5 gen → 30/42/16.8/6.72/2.688/1.792.
+- The migration automatically recomputes commission for every already-Disbursed lead under the new formula.
+- **Referral tree is now capped at 5 generations** — enforced both in Master Data → Agents (parent dropdown
+  disables agents already at max depth) and in the self-onboarding flow (submission + approval both reject
+  referral chains that would exceed 5 generations).

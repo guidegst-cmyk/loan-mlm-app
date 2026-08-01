@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { computeCascade } from '../lib/commissionCalc'
+import { computeCascadeFromD, calculateDRange } from '../lib/commissionCalc'
 
 const STATUSES = ['New', 'Verified', 'Submitted', 'Disbursed', 'Rejected']
 
@@ -22,12 +22,18 @@ export default function AgentDashboard({ currentAgent, leads, ledger, agents, al
   }, [ledger, currentAgent])
 
   // Forecast: pipeline leads (not yet disbursed/rejected) that would earn this
-  // agent something, calculated with the requested amount as an estimate.
+  // agent something. Since no single bank is fixed until Submitted/Disbursed,
+  // this uses the midpoint of the expected range (full DB range pre-Submitted,
+  // narrowed to the submitted banks once Submitted) as an estimate.
   const expected = useMemo(() => {
     const pipeline = leads.filter(l => l.status !== 'Disbursed' && l.status !== 'Rejected')
     let total = 0
     pipeline.forEach(lead => {
-      const rows = computeCascade(lead, allAgents || agents, payoutMatrix || [])
+      const bankIds = lead.status === 'Submitted' ? lead.submitted_bank_ids : null
+      const range = calculateDRange(lead.loan_type_id, lead.loan_amount, lead.client_charge, payoutMatrix || [], bankIds)
+      if (!range) return
+      const midD = (range.min + range.max) / 2
+      const rows = computeCascadeFromD(midD, lead.generator_agent_id, lead.case_handled_by, allAgents || agents)
       rows.forEach(r => { if (r.agentId === currentAgent.id) total += r.amount })
     })
     return total
@@ -44,7 +50,7 @@ export default function AgentDashboard({ currentAgent, leads, ledger, agents, al
       <InviteLinkBox referralCode={currentAgent.referral_code} />
 
       <div className="stat-grid" style={{ marginBottom: 12 }}>
-        <div className="stat-card"><div className="stat-num">₹{expected.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div><div className="stat-label">Expected (pipeline, not yet disbursed)</div></div>
+        <div className="stat-card"><div className="stat-num">₹{expected.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div><div className="stat-label">Expected (est. midpoint, pipeline)</div></div>
         <div className="stat-card"><div className="stat-num">₹{myEarnings.pending.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div><div className="stat-label">Pending (disbursed, not invoiced)</div></div>
         <div className="stat-card"><div className="stat-num">₹{myEarnings.due.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div><div className="stat-label">Due (invoiced, awaiting payment)</div></div>
         <div className="stat-card"><div className="stat-num">₹{myEarnings.paid.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div><div className="stat-label">Paid</div></div>

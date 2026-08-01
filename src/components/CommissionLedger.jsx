@@ -13,11 +13,27 @@ export default function CommissionLedger({ entries, leads, role, payoutMatrix, a
     finally { setBusyId(null) }
   }
 
-  async function handleMarkPaid(id) {
-    setBusyId(id)
-    try { await markPaid(id); onRefresh && onRefresh() }
-    catch (err) { alert('Error: ' + err.message) }
-    finally { setBusyId(null) }
+  const [payingEntry, setPayingEntry] = useState(null)
+  const [tdsInput, setTdsInput] = useState('')
+  const [payingBusy, setPayingBusy] = useState(false)
+
+  function openMarkPaid(entry) {
+    setPayingEntry(entry)
+    setTdsInput((Number(entry.amount) * 0.05).toFixed(2)) // default 5% (Sec 194H)
+  }
+
+  async function confirmMarkPaid(e) {
+    e.preventDefault()
+    setPayingBusy(true)
+    try {
+      await markPaid(payingEntry.id, Number(tdsInput) || 0)
+      setPayingEntry(null)
+      onRefresh && onRefresh()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    } finally {
+      setPayingBusy(false)
+    }
   }
 
   const [preset, setPreset] = useState('all')
@@ -190,7 +206,13 @@ export default function CommissionLedger({ entries, leads, role, payoutMatrix, a
                       <td>{e.level}</td>
                       <td>{e.agents?.name || 'Company'}</td>
                       <td><span className={`badge role-${e.role}`}>{e.role}</span></td>
-                      <td>₹{Number(e.amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                      <td>₹{Number(e.amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        {e.payout_status === 'paid' && Number(e.tds_amount) > 0 && (
+                          <div style={{ fontSize: 10.5, color: '#999' }}>
+                            TDS ₹{Number(e.tds_amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })} · Net ₹{(Number(e.amount) - Number(e.tds_amount)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                          </div>
+                        )}
+                      </td>
                       {role === 'admin' && <td>{((Number(e.amount) / g.total) * 100).toFixed(1)}%</td>}
                       <td>
                         <span className={`badge status-${e.payout_status}`}>
@@ -204,8 +226,8 @@ export default function CommissionLedger({ entries, leads, role, payoutMatrix, a
                           </button>
                         )}
                         {role === 'admin' && e.payout_status === 'due' && (
-                          <button className="link" disabled={busyId === e.id} onClick={() => handleMarkPaid(e.id)}>
-                            {busyId === e.id ? 'Saving…' : 'Mark paid'}
+                          <button className="link" onClick={() => openMarkPaid(e)}>
+                            Mark paid
                           </button>
                         )}
                       </td>
@@ -224,6 +246,29 @@ export default function CommissionLedger({ entries, leads, role, payoutMatrix, a
           </div>
         )
       })}
+
+      {payingEntry && (
+        <div className="modal-backdrop" onClick={() => setPayingEntry(null)}>
+          <form onSubmit={confirmMarkPaid} className="modal" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0 }}>Mark paid — {payingEntry.agents?.name || 'Company'}</h3>
+            <p style={{ fontSize: 12, color: '#888', marginTop: -8 }}>
+              Gross amount: ₹{Number(payingEntry.amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+            </p>
+            <label style={{ display: 'block', fontSize: 13, color: '#555', marginBottom: 4 }}>TDS to deduct (₹) — Sec 194H, defaulted to 5%, edit if different</label>
+            <input
+              type="number" step="0.01" value={tdsInput} onChange={e => setTdsInput(e.target.value)}
+              style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 6, marginBottom: 10 }}
+            />
+            <p style={{ fontSize: 13, fontWeight: 600, color: '#1A3A5C' }}>
+              Net payable: ₹{(Number(payingEntry.amount) - (Number(tdsInput) || 0)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn" type="submit" disabled={payingBusy}>{payingBusy ? 'Saving…' : 'Confirm payment'}</button>
+              <button type="button" className="link" onClick={() => setPayingEntry(null)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   )
 }

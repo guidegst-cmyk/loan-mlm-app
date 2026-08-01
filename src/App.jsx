@@ -211,7 +211,7 @@ export default function App() {
       {selectedLeadId && (() => {
         const freshLead = leads.find(l => l.id === selectedLeadId)
         return freshLead
-          ? <LeadDetailModal lead={freshLead} currentAgent={currentAgent} onClose={() => setSelectedLeadId(null)} />
+          ? <LeadDetailModal lead={freshLead} currentAgent={currentAgent} banks={banks} onRefresh={loadAll} onClose={() => setSelectedLeadId(null)} />
           : null
       })()}
     </div>

@@ -27,46 +27,79 @@ export function calculateD(lead, payoutMatrix) {
 }
 
 // Returns array of { agentId (null = company), level, role, amount }
-export function computeCascade(lead, agents, payoutMatrix) {
-  const D = calculateD(lead, payoutMatrix)
+// New formula: Company always gets a flat 30% of D. The remaining 70%
+// (pool) cascades using "topmost absorbs remainder" uniformly at every
+// level, including the generator when they have no seniors above them.
+export function computeCascadeFromD(D, generatorId, handledBy, agents) {
   if (!D) return []
 
-  const chain = getUplineChain(lead.generator_agent_id, agents)
+  const chain = getUplineChain(generatorId, agents)
   const chainLen = chain.length
   const results = []
 
-  const genGross = round2(0.6 * D)
-  let remaining = D - genGross
+  const companyAmount = round2(0.3 * D)
+  results.push({ agentId: null, level: 0, role: 'company', amount: companyAmount })
+  const pool = D - companyAmount
 
-  const generatorId = lead.generator_agent_id
-  const handledBy = lead.case_handled_by
+  let remaining = pool
+  let l1Commission = 0
 
-  if (handledBy && handledBy !== generatorId) {
-    const handlerShare = round2(0.2 * genGross)
-    results.push({ agentId: generatorId, level: 1, role: 'generator', amount: genGross - handlerShare })
-    results.push({ agentId: handledBy, level: 1, role: 'handler', amount: handlerShare })
-  } else if (!handledBy) {
-    const handlerShare = round2(0.2 * genGross)
-    results.push({ agentId: generatorId, level: 1, role: 'generator', amount: genGross - handlerShare })
-    results.push({ agentId: null, level: 1, role: 'company', amount: handlerShare })
-  } else {
-    results.push({ agentId: generatorId, level: 1, role: 'generator', amount: genGross })
-  }
+  for (let i = 0; i < chainLen; i++) {
+    const isTop = i === chainLen - 1
+    const commission = isTop ? round2(remaining) : round2(0.6 * remaining)
 
-  if (chainLen > 1) {
-    for (let i = 1; i < chainLen; i++) {
-      const isTop = i === chainLen - 1
-      const commission = isTop ? round2(remaining) : round2(0.6 * remaining)
+    if (i === 0) {
+      l1Commission = commission
+      if (handledBy && handledBy !== generatorId) {
+        const handlerShare = round2(0.2 * l1Commission)
+        results.push({ agentId: generatorId, level: 1, role: 'generator', amount: l1Commission - handlerShare })
+        results.push({ agentId: handledBy, level: 1, role: 'handler', amount: handlerShare })
+      } else if (!handledBy) {
+        const handlerShare = round2(0.2 * l1Commission)
+        results.push({ agentId: generatorId, level: 1, role: 'generator', amount: l1Commission - handlerShare })
+        results.push({ agentId: null, level: 1, role: 'company', amount: handlerShare })
+      } else {
+        results.push({ agentId: generatorId, level: 1, role: 'generator', amount: l1Commission })
+      }
+    } else {
       results.push({ agentId: chain[i], level: i + 1, role: 'senior', amount: commission })
-      remaining -= commission
     }
-  } else {
-    results.push({ agentId: null, level: 2, role: 'company', amount: round2(remaining) })
+
+    remaining -= commission
   }
 
   return results
 }
 
+export function computeCascade(lead, agents, payoutMatrix) {
+  const D = calculateD(lead, payoutMatrix)
+  return computeCascadeFromD(D, lead.generator_agent_id, lead.case_handled_by, agents)
+}
+
+// Range of D across matching payout_matrix rules for a loan type — optionally
+// restricted to a set of bank ids (e.g. the up-to-3 banks a lead was submitted to).
+// Returns null if no matching rules exist.
+export function calculateDRange(loanTypeId, loanAmount, clientCharge, payoutMatrix, bankIds) {
+  const rules = payoutMatrix.filter(p =>
+    p.active && p.loan_type_id === loanTypeId &&
+    (!bankIds || bankIds.length === 0 || bankIds.includes(p.bank_id))
+  )
+  if (rules.length === 0) return null
+  const values = rules.map(r => {
+    const bankPayout = r.payout_type === 'percent_of_loan'
+      ? (r.payout_value / 100) * Number(loanAmount || 0)
+      : Number(r.payout_value)
+    return bankPayout + Number(clientCharge || 0)
+  })
+  return { min: Math.min(...values), max: Math.max(...values) }
+}
+
 function round2(n) {
   return Math.round(n * 100) / 100
+}
+
+// Depth of an agent in the referral tree (root = depth 1). Used to enforce
+// the 5-generation structural cap when adding new agents.
+export function agentDepth(agentId, agents) {
+  return getUplineChain(agentId, agents).length
 }

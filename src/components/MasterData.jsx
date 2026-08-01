@@ -3,6 +3,7 @@ import {
   createBank, createLoanType, createPayoutRule, updatePayoutRule,
   createAgent, updateAgent, createAgentLogin,
 } from '../lib/queries'
+import { agentDepth } from '../lib/commissionCalc'
 import AgentDocumentsPanel from './AgentDocumentsPanel'
 import ApplicationsPanel from './ApplicationsPanel'
 
@@ -46,6 +47,12 @@ function AgentsPanel({ agents, onRefresh }) {
     setSaving(true)
     setError('')
     try {
+      if (form.parent_agent_id) {
+        const depth = agentDepth(form.parent_agent_id, agents)
+        if (depth >= 5) {
+          throw new Error('Cannot add agent: this referral chain would exceed the 5-generation limit')
+        }
+      }
       const agent = await createAgent({
         name: form.name,
         parent_agent_id: form.parent_agent_id || null,
@@ -88,7 +95,14 @@ function AgentsPanel({ agents, onRefresh }) {
             <label>Parent agent (blank = topmost)
               <select value={form.parent_agent_id} onChange={e => setForm(f => ({ ...f, parent_agent_id: e.target.value }))}>
                 <option value="">None (topmost)</option>
-                {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                {agents.map(a => {
+                  const depth = agentDepth(a.id, agents)
+                  return (
+                    <option key={a.id} value={a.id} disabled={depth >= 5}>
+                      {a.name}{depth >= 5 ? ' (max depth reached)' : ''}
+                    </option>
+                  )
+                })}
               </select>
             </label>
             <label>Referral code

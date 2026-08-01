@@ -199,12 +199,52 @@ export async function getAgentDocumentUrl(path) {
   return data.signedUrl
 }
 
-export async function disburseLead(leadId, { disbursed_amount, disbursed_at }) {
+export async function disburseLead(leadId, { disbursed_amount, disbursed_at, bank_id }) {
   const { data, error } = await supabase
     .from('leads')
-    .update({ status: 'Disbursed', disbursed_amount, disbursed_at })
+    .update({ status: 'Disbursed', disbursed_amount, disbursed_at, bank_id })
     .eq('id', leadId)
     .select()
+  if (error) throw error
+  return data
+}
+
+export async function submitLeadToBanks(leadId, bankIds) {
+  const { data, error } = await supabase
+    .from('leads')
+    .update({ status: 'Submitted', submitted_bank_ids: bankIds })
+    .eq('id', leadId)
+    .select()
+  if (error) throw error
+  return data
+}
+
+export async function rejectLead(leadId, reason) {
+  const { data, error } = await supabase
+    .from('leads')
+    .update({ status: 'Rejected', rejection_reason: reason })
+    .eq('id', leadId)
+    .select()
+  if (error) throw error
+  return data
+}
+
+export async function updateSecurityInsurance(leadId, payload) {
+  const { data, error } = await supabase
+    .from('leads')
+    .update(payload)
+    .eq('id', leadId)
+    .select()
+  if (error) throw error
+  return data
+}
+
+export async function checkDuplicateByPAN(pan) {
+  if (!pan) return []
+  const { data, error } = await supabase
+    .from('leads')
+    .select('id, lead_number, customer_name, status, generator:agents!leads_generator_agent_id_fkey(name)')
+    .eq('customer_pan', pan.toUpperCase())
   if (error) throw error
   return data
 }
@@ -220,10 +260,10 @@ export async function raiseInvoice(ledgerEntryId) {
   return data
 }
 
-export async function markPaid(ledgerEntryId) {
+export async function markPaid(ledgerEntryId, tdsAmount = 0) {
   const { data, error } = await supabase
     .from('commission_ledger')
-    .update({ payout_status: 'paid', paid_at: new Date().toISOString() })
+    .update({ payout_status: 'paid', paid_at: new Date().toISOString(), tds_amount: tdsAmount })
     .eq('id', ledgerEntryId)
     .eq('payout_status', 'due')
     .select()
