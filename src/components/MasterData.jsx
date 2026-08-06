@@ -190,7 +190,7 @@ function BanksLoanTypesPanel({ banks, loanTypes, onRefresh }) {
 
 function PayoutMatrixPanel({ banks, loanTypes, payoutMatrix, onRefresh }) {
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ bank_id: '', loan_type_id: '', payout_type: 'percent_of_loan', payout_value: '' })
+  const [form, setForm] = useState({ bank_id: '', loan_type_id: '', source: 'Direct', payout_type: 'percent_of_loan', payout_value: '' })
   const [editingId, setEditingId] = useState(null)
   const [editValue, setEditValue] = useState('')
   const [busy, setBusy] = useState(false)
@@ -205,10 +205,10 @@ function PayoutMatrixPanel({ banks, loanTypes, payoutMatrix, onRefresh }) {
     setError('')
     try {
       await createPayoutRule({
-        bank_id: form.bank_id, loan_type_id: form.loan_type_id,
+        bank_id: form.bank_id, loan_type_id: form.loan_type_id, source: form.source,
         payout_type: form.payout_type, payout_value: Number(form.payout_value), active: true,
       })
-      setForm({ bank_id: '', loan_type_id: '', payout_type: 'percent_of_loan', payout_value: '' })
+      setForm({ bank_id: '', loan_type_id: '', source: 'Direct', payout_type: 'percent_of_loan', payout_value: '' })
       setShowForm(false)
       onRefresh()
     } catch (err) {
@@ -264,6 +264,13 @@ function PayoutMatrixPanel({ banks, loanTypes, payoutMatrix, onRefresh }) {
                 {loanTypes.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
             </label>
+            <label>Source
+              <select value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))}>
+                <option value="DSA-1">DSA-1</option>
+                <option value="DSA-2">DSA-2</option>
+                <option value="Direct">Direct (bank)</option>
+              </select>
+            </label>
             <label>Payout type
               <select value={form.payout_type} onChange={e => setForm(f => ({ ...f, payout_type: e.target.value }))}>
                 <option value="percent_of_loan">% of loan amount</option>
@@ -282,12 +289,13 @@ function PayoutMatrixPanel({ banks, loanTypes, payoutMatrix, onRefresh }) {
       )}
 
       <div className="table-scroll"><table className="table">
-        <thead><tr><th>Bank</th><th>Loan type</th><th>Type</th><th>Value</th><th>Active</th><th></th></tr></thead>
+        <thead><tr><th>Bank</th><th>Loan type</th><th>Source</th><th>Type</th><th>Value</th><th>Active</th><th></th></tr></thead>
         <tbody>
           {payoutMatrix.map(p => (
             <tr key={p.id}>
               <td>{bankName(p.bank_id)}</td>
               <td>{ltName(p.loan_type_id)}</td>
+              <td><span className={`badge role-${p.source === 'Direct' ? 'generator' : p.source === 'DSA-1' ? 'senior' : 'handler'}`}>{p.source}</span></td>
               <td>{p.payout_type === 'percent_of_loan' ? '% of loan' : 'Fixed'}</td>
               <td>
                 {editingId === p.id ? (

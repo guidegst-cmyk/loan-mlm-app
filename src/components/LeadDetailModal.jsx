@@ -96,6 +96,7 @@ export default function LeadDetailModal({ lead, currentAgent, banks, onRefresh, 
             {lead.submitted_bank_ids?.length ? lead.submitted_bank_ids.map(bankName).join(', ') : '—'}
           </InfoRow>
           <InfoRow label="Final bank">{lead.bank_id ? bankName(lead.bank_id) : '—'}</InfoRow>
+          <InfoRow label="Payout source">{lead.payout_source || '—'}</InfoRow>
           <InfoRow label="Disbursed amount">
             {lead.status === 'Disbursed' && lead.disbursed_amount ? (
               <>

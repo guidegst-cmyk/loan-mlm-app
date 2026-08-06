@@ -156,3 +156,17 @@ Run `new_commission_formula_migration.sql` before using this.
 - **Referral tree is now capped at 5 generations** — enforced both in Master Data → Agents (parent dropdown
   disables agents already at max depth) and in the self-onboarding flow (submission + approval both reject
   referral chains that would exceed 5 generations).
+
+## Final 2-generation commission formula + payout matrix sources (new)
+Run `two_gen_formula_and_payout_sources_migration.sql` before using this.
+
+1. **New commission formula (final):** Company always gets a flat 30% of D. Remaining 70% (pool) splits
+   80% to the generator (=56% of D) and 20% to their immediate senior (=14% of D). Anyone further up the
+   chain earns nothing from that lead. If the generator has no senior at all, they absorb the full 70% pool.
+   The migration automatically recomputes every already-Disbursed lead under this formula.
+2. **Payout matrix now has 3 sources per bank+loan-type**: DSA-1, DSA-2, Direct (bank). Master Data →
+   Payout Matrix has a Source field when adding/viewing rules. The estimated commission range shown at
+   lead creation now spans ALL sources combined (lowest to highest across DSA-1/DSA-2/Direct, all banks) —
+   blank/unassigned combinations are simply absent rows, never treated as 0.
+3. **Disburse modal now also asks for "Payout source"** (DSA-1/DSA-2/Direct) — the actual channel the
+   deal went through, needed both to look up the correct rate and, later, to know who to invoice.

@@ -93,6 +93,7 @@ export default function LeadsTable({ leads, agents, allAgents, banks, loanTypes,
   const [disburseAmount, setDisburseAmount] = useState('')
   const [disburseDate, setDisburseDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [disburseBankId, setDisburseBankId] = useState('')
+  const [disburseSource, setDisburseSource] = useState('Direct')
   const [disbursing, setDisbursing] = useState(false)
 
   // ---------- Submit-to-banks modal ----------
@@ -111,6 +112,7 @@ export default function LeadsTable({ leads, agents, allAgents, banks, loanTypes,
       setDisburseAmount(lead.loan_amount || '')
       setDisburseDate(new Date().toISOString().slice(0, 10))
       setDisburseBankId(lead.bank_id || (lead.submitted_bank_ids?.[0] || ''))
+      setDisburseSource(lead.payout_source || 'Direct')
       return
     }
     if (status === 'Submitted') {
@@ -139,6 +141,7 @@ export default function LeadsTable({ leads, agents, allAgents, banks, loanTypes,
         disbursed_amount: disburseAmount ? Number(disburseAmount) : null,
         disbursed_at: new Date(disburseDate).toISOString(),
         bank_id: disburseBankId || null,
+        payout_source: disburseSource,
       })
       setDisburseFor(null)
       onRefresh()
@@ -400,6 +403,14 @@ export default function LeadsTable({ leads, agents, allAgents, banks, loanTypes,
               {(disburseFor.submitted_bank_ids?.length ? disburseFor.submitted_bank_ids : banks.map(b => b.id)).map(id => (
                 <option key={id} value={id}>{bankName(id)}</option>
               ))}
+            </select>
+
+            <label style={{ display: 'block', fontSize: 13, color: '#555', marginBottom: 4 }}>Payout source (which channel this actually went through)</label>
+            <select value={disburseSource} onChange={e => setDisburseSource(e.target.value)}
+              style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 6, marginBottom: 12 }}>
+              <option value="DSA-1">DSA-1</option>
+              <option value="DSA-2">DSA-2</option>
+              <option value="Direct">Direct (bank)</option>
             </select>
 
             <label style={{ display: 'block', fontSize: 13, color: '#555', marginBottom: 4 }}>Disbursed amount (₹)</label>

@@ -73,17 +73,21 @@ export default function CommissionLedger({ entries, leads, role, payoutMatrix, a
 
   const payoutByKey = useMemo(() => {
     const m = {}
-    payoutMatrix.forEach(p => { m[`${p.bank_id}|${p.loan_type_id}`] = p })
+    payoutMatrix.forEach(p => { m[`${p.bank_id}|${p.loan_type_id}|${p.source}`] = p })
     return m
   }, [payoutMatrix])
 
+  function lookupKey(lead) {
+    return `${lead.bank_id}|${lead.loan_type_id}|${lead.payout_source || 'Direct'}`
+  }
+
   function payoutRateText(lead) {
     if (!lead) return null
-    const p = payoutByKey[`${lead.bank_id}|${lead.loan_type_id}`]
+    const p = payoutByKey[lookupKey(lead)]
     if (!p) return null
     return p.payout_type === 'percent_of_loan'
-      ? `${p.payout_value}% of loan (payout master)`
-      : `₹${Number(p.payout_value).toLocaleString('en-IN')} fixed (payout master)`
+      ? `${p.payout_value}% of loan via ${p.source} (payout master)`
+      : `₹${Number(p.payout_value).toLocaleString('en-IN')} fixed via ${p.source} (payout master)`
   }
 
   const groups = useMemo(() => {
@@ -186,8 +190,8 @@ export default function CommissionLedger({ entries, leads, role, payoutMatrix, a
                   </tr>
                 </thead>
                 <tbody>
-                  {role === 'admin' && lead && payoutByKey[`${lead.bank_id}|${lead.loan_type_id}`] && (() => {
-                    const p = payoutByKey[`${lead.bank_id}|${lead.loan_type_id}`]
+                  {role === 'admin' && lead && payoutByKey[lookupKey(lead)] && (() => {
+                    const p = payoutByKey[lookupKey(lead)]
                     const bankPayout = p.payout_type === 'percent_of_loan'
                       ? (p.payout_value / 100) * Number(lead.disbursed_amount || lead.loan_amount || 0)
                       : Number(p.payout_value)

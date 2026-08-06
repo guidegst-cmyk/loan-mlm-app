@@ -18,7 +18,8 @@ export function getUplineChain(agentId, agents) {
 
 export function calculateD(lead, payoutMatrix) {
   const effectiveAmount = lead.disbursed_amount || lead.loan_amount || 0
-  const rule = payoutMatrix.find(p => p.bank_id === lead.bank_id && p.loan_type_id === lead.loan_type_id && p.active)
+  const source = lead.payout_source || 'Direct'
+  const rule = payoutMatrix.find(p => p.bank_id === lead.bank_id && p.loan_type_id === lead.loan_type_id && p.source === source && p.active)
   if (!rule) return 0
   const bankPayout = rule.payout_type === 'percent_of_loan'
     ? (rule.payout_value / 100) * Number(effectiveAmount)
@@ -27,9 +28,10 @@ export function calculateD(lead, payoutMatrix) {
 }
 
 // Returns array of { agentId (null = company), level, role, amount }
-// New formula: Company always gets a flat 30% of D. The remaining 70%
-// (pool) cascades using "topmost absorbs remainder" uniformly at every
-// level, including the generator when they have no seniors above them.
+// FINAL formula (2-generation structure): Company always gets a flat 30%
+// of D. The remaining 70% (pool) splits 80/20 between the generator and
+// their immediate senior — anyone further up the chain earns nothing from
+// this lead. If the generator has no senior at all, they absorb the full pool.
 export function computeCascadeFromD(D, generatorId, handledBy, agents) {
   if (!D) return []
 
@@ -41,31 +43,25 @@ export function computeCascadeFromD(D, generatorId, handledBy, agents) {
   results.push({ agentId: null, level: 0, role: 'company', amount: companyAmount })
   const pool = D - companyAmount
 
-  let remaining = pool
-  let l1Commission = 0
+  let l1Commission
+  if (chainLen === 1) {
+    l1Commission = round2(pool)
+  } else {
+    l1Commission = round2(0.8 * pool)
+    const seniorAmount = pool - l1Commission
+    results.push({ agentId: chain[1], level: 2, role: 'senior', amount: seniorAmount })
+  }
 
-  for (let i = 0; i < chainLen; i++) {
-    const isTop = i === chainLen - 1
-    const commission = isTop ? round2(remaining) : round2(0.6 * remaining)
-
-    if (i === 0) {
-      l1Commission = commission
-      if (handledBy && handledBy !== generatorId) {
-        const handlerShare = round2(0.2 * l1Commission)
-        results.push({ agentId: generatorId, level: 1, role: 'generator', amount: l1Commission - handlerShare })
-        results.push({ agentId: handledBy, level: 1, role: 'handler', amount: handlerShare })
-      } else if (!handledBy) {
-        const handlerShare = round2(0.2 * l1Commission)
-        results.push({ agentId: generatorId, level: 1, role: 'generator', amount: l1Commission - handlerShare })
-        results.push({ agentId: null, level: 1, role: 'company', amount: handlerShare })
-      } else {
-        results.push({ agentId: generatorId, level: 1, role: 'generator', amount: l1Commission })
-      }
-    } else {
-      results.push({ agentId: chain[i], level: i + 1, role: 'senior', amount: commission })
-    }
-
-    remaining -= commission
+  if (handledBy && handledBy !== generatorId) {
+    const handlerShare = round2(0.2 * l1Commission)
+    results.push({ agentId: generatorId, level: 1, role: 'generator', amount: l1Commission - handlerShare })
+    results.push({ agentId: handledBy, level: 1, role: 'handler', amount: handlerShare })
+  } else if (!handledBy) {
+    const handlerShare = round2(0.2 * l1Commission)
+    results.push({ agentId: generatorId, level: 1, role: 'generator', amount: l1Commission - handlerShare })
+    results.push({ agentId: null, level: 1, role: 'company', amount: handlerShare })
+  } else {
+    results.push({ agentId: generatorId, level: 1, role: 'generator', amount: l1Commission })
   }
 
   return results
@@ -76,9 +72,11 @@ export function computeCascade(lead, agents, payoutMatrix) {
   return computeCascadeFromD(D, lead.generator_agent_id, lead.case_handled_by, agents)
 }
 
-// Range of D across matching payout_matrix rules for a loan type — optionally
-// restricted to a set of bank ids (e.g. the up-to-3 banks a lead was submitted to).
-// Returns null if no matching rules exist.
+// Range of D across matching payout_matrix rules for a loan type — combines
+// ALL payout sources (DSA-1, DSA-2, Direct) and, optionally, restricts to a
+// set of bank ids (e.g. the up-to-3 banks a lead was submitted to). Rows
+// with no assigned rate simply don't exist, so they're naturally excluded
+// rather than counted as 0. Returns null if no matching rules exist at all.
 export function calculateDRange(loanTypeId, loanAmount, clientCharge, payoutMatrix, bankIds) {
   const rules = payoutMatrix.filter(p =>
     p.active && p.loan_type_id === loanTypeId &&

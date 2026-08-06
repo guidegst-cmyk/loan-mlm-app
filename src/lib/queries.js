@@ -199,10 +199,10 @@ export async function getAgentDocumentUrl(path) {
   return data.signedUrl
 }
 
-export async function disburseLead(leadId, { disbursed_amount, disbursed_at, bank_id }) {
+export async function disburseLead(leadId, { disbursed_amount, disbursed_at, bank_id, payout_source }) {
   const { data, error } = await supabase
     .from('leads')
-    .update({ status: 'Disbursed', disbursed_amount, disbursed_at, bank_id })
+    .update({ status: 'Disbursed', disbursed_amount, disbursed_at, bank_id, payout_source })
     .eq('id', leadId)
     .select()
   if (error) throw error
