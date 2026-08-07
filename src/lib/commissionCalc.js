@@ -43,14 +43,15 @@ export function computeCascadeFromD(D, generatorId, handledBy, agents) {
   results.push({ agentId: null, level: 0, role: 'company', amount: companyAmount })
   const pool = D - companyAmount
 
-  let l1Commission
   if (chainLen === 1) {
-    l1Commission = round2(pool)
-  } else {
-    l1Commission = round2(0.8 * pool)
-    const seniorAmount = pool - l1Commission
-    results.push({ agentId: chain[1], level: 2, role: 'senior', amount: seniorAmount })
+    // No senior at all: generator gets the FULL pool, no handler split.
+    results.push({ agentId: generatorId, level: 1, role: 'generator', amount: round2(pool) })
+    return results
   }
+
+  const l1Commission = round2(0.8 * pool)
+  const seniorAmount = pool - l1Commission
+  results.push({ agentId: chain[1], level: 2, role: 'senior', amount: seniorAmount })
 
   if (handledBy && handledBy !== generatorId) {
     const handlerShare = round2(0.2 * l1Commission)
