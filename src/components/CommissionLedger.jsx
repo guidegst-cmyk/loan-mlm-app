@@ -238,7 +238,7 @@ export default function CommissionLedger({ entries, leads, role, payoutMatrix, a
                     </tr>
                   ))}
                   <tr style={{ fontWeight: 600, background: '#f8f9fa' }}>
-                    <td colSpan={3}>Total distributable payout (D)</td>
+                    <td colSpan={3}>{role === 'admin' ? 'Total distributable payout (D)' : 'Total (your share)'}</td>
                     <td>₹{g.total.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                     {role === 'admin' && <td>100%</td>}
                     <td></td>

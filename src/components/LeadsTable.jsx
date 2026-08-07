@@ -301,9 +301,11 @@ export default function LeadsTable({ leads, agents, allAgents, banks, loanTypes,
                 the database for this loan type. It narrows once the lead is Submitted (up to 3 banks), and
                 becomes a fixed figure at Disbursement.
               </div>
-              <div style={{ marginTop: 6 }}>
-                Total distributable payout (D): ₹{preview.dMin.toLocaleString('en-IN', { maximumFractionDigits: 0 })} – ₹{preview.dMax.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-              </div>
+              {role === 'admin' && (
+                <div style={{ marginTop: 6 }}>
+                  Total distributable payout (D): ₹{preview.dMin.toLocaleString('en-IN', { maximumFractionDigits: 0 })} – ₹{preview.dMax.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </div>
+              )}
               <table style={{ width: '100%', marginTop: 6, fontSize: 12 }}>
                 <tbody>
                   {preview.combined
