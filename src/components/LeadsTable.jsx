@@ -306,17 +306,19 @@ export default function LeadsTable({ leads, agents, allAgents, banks, loanTypes,
               </div>
               <table style={{ width: '100%', marginTop: 6, fontSize: 12 }}>
                 <tbody>
-                  {preview.combined.map((r, i) => {
-                    const agentName = r.agentId ? (allAgents || agents).find(a => a.id === r.agentId)?.name : 'Company'
-                    return (
-                      <tr key={i}>
-                        <td style={{ padding: '2px 0' }}>L{r.level} · {agentName} <span style={{ color: '#999' }}>({r.role})</span></td>
-                        <td style={{ textAlign: 'right', fontWeight: 500 }}>
-                          ₹{r.minAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })} – ₹{r.maxAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                        </td>
-                      </tr>
-                    )
-                  })}
+                  {preview.combined
+                    .filter(r => role === 'admin' || r.role !== 'company')
+                    .map((r, i) => {
+                      const agentName = r.agentId ? (allAgents || agents).find(a => a.id === r.agentId)?.name : 'Company'
+                      return (
+                        <tr key={i}>
+                          <td style={{ padding: '2px 0' }}>L{r.level} · {agentName} <span style={{ color: '#999' }}>({r.role})</span></td>
+                          <td style={{ textAlign: 'right', fontWeight: 500 }}>
+                            ₹{r.minAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })} – ₹{r.maxAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                          </td>
+                        </tr>
+                      )
+                    })}
                 </tbody>
               </table>
             </div>
